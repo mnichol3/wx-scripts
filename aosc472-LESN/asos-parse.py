@@ -211,7 +211,7 @@ def plot_temp(station, station_df):
     plt.plot(times, dewp, label = 'Dewpoint')
 
     plt.legend(['Temp', 'DewP'])
-    plt.xlabel('Date & time')
+    #plt.xlabel('Date & time')
     plt.ylabel('Temp (f)')
 
     if (tick_freq == 0):
@@ -264,12 +264,8 @@ def plot_wind(station, station_df, tick_freq=0):
     s_time = times[0]
     e_time = times[-1]
 
-    #plt.plot(times, temp, label = 'Temp')
-    #plt.plot(times, dewp, label = 'Dewpoint')
-
-    #plt.legend(['Temp', 'DewP'])
     plt.barbs(times, w_spd, u, v, w_spd, length=6, pivot='tip')
-    #plt.xlabel('Date & time')
+
     plt.ylabel('Wind Speed (kts)')
 
     if (tick_freq == 0):
