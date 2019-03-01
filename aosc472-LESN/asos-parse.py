@@ -8,6 +8,8 @@ import cartopy.crs as ccrs
 from cartopy.feature import NaturalEarthFeature
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import math
 
 
 ASOS_DATA_PATH = '/home/mnichol3/Coding/wx-scripts/aosc472-LESN/data/asos.txt'
@@ -208,12 +210,78 @@ def plot_temp(station, station_df):
     plt.plot(times, temp, label = 'Temp')
     plt.plot(times, dewp, label = 'Dewpoint')
 
-    #plt.legend(legend_vals)
+    plt.legend(['Temp', 'DewP'])
     plt.xlabel('Date & time')
     plt.ylabel('Temp (f)')
+
+    if (tick_freq == 0):
+        x_tick_freq = 6
+    else:
+        x_tick_freq = tick_freq
+
+    plt.xticks(times[::x_tick_freq], np.array(times)[::x_tick_freq], rotation=60, ha='right')
+
     plt.title(station + ' Temp & Dewpoint from ' + s_time + ' to ' + e_time)
+    plt.tight_layout()
     plt.show()
 
+
+
+def plot_wind(station, station_df, tick_freq=0):
+    """
+    Plots wind speed for a specific station
+
+    Parameters
+    ----------
+    station : str
+        3-letter ASOS station ID
+    station_df : Pandas dataframe
+        Dataframe containing ASOS observations taken at the argument ASOS station
+
+
+    Returns
+    -------
+    None, displays a plot
+    """
+
+    valid_data = station_df.loc[(station_df.drct != 'M') & (station_df.sknt != 'M'), COL_NAMES]
+
+    times = valid_data['valid'].tolist()
+
+    w_dir = valid_data['drct'].tolist()
+    w_dir = [float(x) for x in w_dir]
+
+    w_spd = valid_data['sknt'].tolist()
+    w_spd = [float(y) for y in w_spd]
+
+    u = [0] * len(times)
+    v = [0] * len(times)
+
+    for idx, n in enumerate(w_spd):
+        u[idx] = n * math.sin(math.radians(w_dir[idx]))
+        v[idx] = n * math.cos(math.radians(w_dir[idx]))
+
+    s_time = times[0]
+    e_time = times[-1]
+
+    #plt.plot(times, temp, label = 'Temp')
+    #plt.plot(times, dewp, label = 'Dewpoint')
+
+    #plt.legend(['Temp', 'DewP'])
+    plt.barbs(times, w_spd, u, v, w_spd, length=6, pivot='tip')
+    #plt.xlabel('Date & time')
+    plt.ylabel('Wind Speed (kts)')
+
+    if (tick_freq == 0):
+        x_tick_freq = 6
+    else:
+        x_tick_freq = tick_freq
+
+    plt.xticks(times[::x_tick_freq], np.array(times)[::x_tick_freq], rotation=60, ha='right')
+
+    plt.title(station + ' Wind Speed & Dir from ' + s_time + ' to ' + e_time)
+    plt.tight_layout()
+    plt.show()
 
 
 
@@ -222,7 +290,8 @@ def main():
     asos = sort_df(asos)
     df_dict = df_by_station(asos) # It works!!
     #print(df_dict['BUF'])
-    plot_temp('ROC', df_dict['ROC'])
+    #plot_temp('ROC', df_dict['ROC'])
+    plot_wind('ROC', df_dict['ROC'], 15)
 
 if (__name__ == "__main__"):
     main()
