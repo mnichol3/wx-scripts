@@ -7,9 +7,13 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 from cartopy.feature import NaturalEarthFeature
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 ASOS_DATA_PATH = '/home/mnichol3/Coding/wx-scripts/aosc472-LESN/data/asos.txt'
+COL_NAMES = ['station', 'valid', 'lon', 'lat', 'tmpf', 'dwpf', 'relh', 'drct',
+            'sknt', 'alti', 'mslp', 'p01i', 'vsby', 'gust', 'skyl1', 'skyl2',
+            'skyl3', 'wxcodes']
 
 
 def read_data(fname, debug=True):
@@ -160,27 +164,65 @@ def df_by_station(asos_df):
         observation data
     """
     asos_staion_dict = {}
-    col_names = ['station', 'valid', 'lon', 'lat', 'tmpf', 'dwpf', 'relh', 'drct',
-                'sknt', 'alti', 'mslp', 'p01i', 'vsby', 'gust', 'skyl1', 'skyl2',
-                'skyl3', 'wxcodes']
 
     stations = get_asos_stations(asos_df)
 
     for stn in stations:
-        temp_df = asos_df.loc[(asos_df.station == stn), col_names]
+        temp_df = asos_df.loc[(asos_df.station == stn), COL_NAMES]
         asos_staion_dict[stn] = temp_df
 
     return asos_staion_dict
 
 
 
+def plot_temp(station, station_df):
+    """
+    Plots the temperature & dewpoint for a specific station
+
+    Parameters
+    ----------
+    station : str
+        3-letter ASOS station ID
+    station_df : Pandas dataframe
+        Dataframe containing ASOS observations taken at the argument ASOS station
+
+
+    Returns
+    -------
+    None, displays a plot
+    """
+    # Filter the station dataframe for rows with valid temp & dewpoint values
+    valid_data = station_df.loc[(station_df.tmpf != 'M') & (station_df.dwpf != 'M'), COL_NAMES]
+
+    times = valid_data['valid'].tolist()
+
+    temp = valid_data['tmpf'].tolist()
+    temp = [float(x) for x in temp]
+
+    dewp = valid_data['dwpf'].tolist()
+    dewp = [float(y) for y in dewp]
+
+    s_time = times[0]
+    e_time = times[-1]
+
+    plt.plot(times, temp, label = 'Temp')
+    plt.plot(times, dewp, label = 'Dewpoint')
+
+    #plt.legend(legend_vals)
+    plt.xlabel('Date & time')
+    plt.ylabel('Temp (f)')
+    plt.title(station + ' Temp & Dewpoint from ' + s_time + ' to ' + e_time)
+    plt.show()
+
+
+
+
 def main():
     asos = read_data(ASOS_DATA_PATH)
-    #print(get_asos_stations(asos))
-    #print(get_date_range(asos))
     asos = sort_df(asos)
-    #df_to_csv(asos, 'asos-df-sorted.csv') # It works!!
-    #print(df_by_station(asos)['ROC']) # It works!!
+    df_dict = df_by_station(asos) # It works!!
+    #print(df_dict['BUF'])
+    plot_temp('ROC', df_dict['ROC'])
 
 if (__name__ == "__main__"):
     main()
