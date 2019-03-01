@@ -1,0 +1,5 @@
+# Don't track these folders
+__pycache__/
+
+# Don't track these files
+*.pyc
