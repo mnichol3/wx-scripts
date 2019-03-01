@@ -1,7 +1,7 @@
 name: wx-scripts
 channels:
-  - anaconda
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
   - bzip2=1.0.6=h14c3975_5
@@ -13,16 +13,15 @@ dependencies:
   - netcdf4=1.4.2=py36h808af73_0
   - boto3=1.9.105=py_0
   - botocore=1.12.105=py_0
-  - ca-certificates=2018.11.29=ha4d7672_0
-  - certifi=2018.11.29=py36_1000
   - docutils=0.14=py36_1001
   - jmespath=0.9.3=py_1
   - libssh2=1.8.0=h90d6eec_1004
-  - openssl=1.1.1b=h14c3975_0
   - s3transfer=0.2.0=py36_0
   - asn1crypto=0.24.0=py36_0
   - blas=1.0=mkl
+  - ca-certificates=2019.1.23=0
   - cartopy=0.17.0=py36hbb7e04d_1
+  - certifi=2018.11.29=py36_0
   - cffi=1.12.1=py36h2e261b9_0
   - chardet=3.0.4=py36_1
   - cryptography=2.5=py36h1ba5d50_0
@@ -59,9 +58,10 @@ dependencies:
   - mkl_fft=1.0.10=py36ha843d7b_0
   - mkl_random=1.0.2=py36hd81dba3_0
   - ncurses=6.1=he6710b0_1
-  - numpy=1.16.1=py36h7e9f1db_0
-  - numpy-base=1.16.1=py36hde5b4d6_0
+  - numpy=1.15.4=py36h7e9f1db_0
+  - numpy-base=1.15.4=py36hde5b4d6_0
   - olefile=0.46=py36_0
+  - openssl=1.1.1b=h7b6447c_0
   - owslib=0.17.0=py36_0
   - pandas=0.24.1=py36he6710b0_0
   - pcre=8.42=h439df22_0
