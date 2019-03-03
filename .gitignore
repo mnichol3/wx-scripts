@@ -3,3 +3,8 @@ __pycache__/
 
 # Don't track these files
 *.pyc
+*.dbf
+*.prj
+*.shp
+*.shx
+*.nc
