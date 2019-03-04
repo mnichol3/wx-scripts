@@ -12,7 +12,7 @@ import numpy as np
 import math
 
 
-ASOS_DATA_PATH = '/home/mnichol3/Coding/wx-scripts/aosc472-LESN/data/asos.txt'
+ASOS_DATA_PATH = '/home/mnichol3/Coding/wx-scripts/aosc472-LESN/data/ART.txt'
 COL_NAMES = ['station', 'valid', 'lon', 'lat', 'tmpf', 'dwpf', 'relh', 'drct',
             'sknt', 'alti', 'mslp', 'p01i', 'vsby', 'gust', 'skyl1', 'skyl2',
             'skyl3', 'wxcodes']
@@ -184,7 +184,7 @@ def df_by_station(asos_df):
 
 
 
-def plot_temp(station, station_df):
+def plot_temp(station, station_df, tick_freq=0):
     """
     Plots the temperature & dewpoint for a specific station
 
@@ -291,10 +291,10 @@ def plot_wind(station, station_df, tick_freq=0):
 def main():
     asos = read_data(ASOS_DATA_PATH)
     #print(get_asos_stations(asos))
-    #asos = sort_df(asos)
-    #df_dict = df_by_station(asos) # It works!!
+    asos = sort_df(asos)
+    df_dict = df_by_station(asos) # It works!!
     #print(df_dict['BUF'])
-    #plot_temp('ROC', df_dict['ROC'])
+    plot_wind('ART', df_dict['ART'], 10)
     #plot_wind('ROC', df_dict['ROC'], 15)
 
 if (__name__ == "__main__"):

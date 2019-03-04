@@ -95,7 +95,7 @@ def make_plot(fname):
     skew.plot_moist_adiabats()
     skew.plot_mixing_lines()
 
-    plt.title('ALB 20180103 00z')
+    plt.title('DTX 20180102 0z')
 
     plt.show()
 
@@ -103,9 +103,10 @@ def make_plot(fname):
 
 def main():
 
-    fnames = ['sounding-ALB-20180103-00.txt', 'sounding-BUF-20180102-00.txt']
+    fnames = ['sounding-ALB-20180103-00.txt', 'sounding-BUF-20180102-00.txt',
+              'sounding-DTX-20180102-00.txt', 'sounding-DTX-20180102-12.txt']
 
-    fname = DATA_PATH + fnames[0]
+    fname = DATA_PATH + fnames[2]
 
     make_plot(fname)
 

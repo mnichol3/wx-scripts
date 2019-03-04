@@ -112,7 +112,9 @@ def make_map(fname, coords):
         ax.text(station_lons[i], station_lats[i]+ 0.05, name, horizontalalignment='left',
                 color='black', transform=ccrs.PlateCarree(), zorder = 11)
 
-    plt.colorbar(snow_contours, norm=norm, extend='both')
+    cbar = plt.colorbar(snow_contours, norm=norm, extend='both')
+    cbar.ax.set_ylabel('inches', rotation=90)
+
     plt.title('Snow Accumulation from ' + start_date + ' to ' + stop_date)
     plt.tight_layout()
     plt.show()
@@ -139,12 +141,13 @@ def main():
                   'sfav2_CONUS_48h_2018010312.nc',
                   'sfav2_CONUS_48h_2018010400.nc']
 
-    make_map('sfav2_CONUS_48h_2018010312.nc', coords)
 
-    """
+    for x in tot_fnames:
+        make_map(x, coords)
+
     for x in six_hr_fnames:
         make_map(x, coords)
-    """
+
 
 if (__name__ == "__main__"):
     main()
