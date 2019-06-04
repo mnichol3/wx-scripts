@@ -14,11 +14,11 @@ import sys
 DATA_PATH = '/media/mnichol3/pmeyers1/MattNicholson/nexrad'
 
 # Read in the gridded file, create GridMapDisplay object
-fname = 'KAMA_SDUS54_N0RAMA_201905232102.nc'
+fname = 'KAMA20190523_210747_V06.nc'
 fpath = join(DATA_PATH, fname)
 
 radar = pyart.io.read(fpath)
-display = pyart.graph.RadarMapDisplay(radar)
+display = pyart.graph.GridMapDisplay(radar)
 
 # Setting projection, figure size, and panel sizes.
 projection = ccrs.PlateCarree()
@@ -33,12 +33,12 @@ y_cut_panel_axes = [0.55, 0.50, .4, .25]
 level = 1
 vmin = -8
 vmax = 64
-lat = 36.5
-lon = -97.7
+lat = 35.615
+lon = -101.378
 
 # Panel 1: PPI plot of the second tilt.
 ax1 = fig.add_axes(map_panel_axes, projection=projection)
-display.plot('reflectivity', 1, vmin=vmin, vmax=vmax,
+display.plot_grid('reflectivity', 1, vmin=vmin, vmax=vmax,
                   projection=projection,
                   cmap='pyart_HomeyerRainbow')
 display.plot_crosshairs(lon=lon, lat=lat)
