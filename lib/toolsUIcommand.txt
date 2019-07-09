@@ -1,0 +1,2 @@
+java -classpath toolsUI-4.6.13.jar ucar.nc2.FileWriter -in /media/mnichol3/pmeyers1/MattNicholson/nexrad/KAMA20190523_210747_V06 -out /media/mnichol3/pmeyers1/MattNicholson/nexrad/KAMA20190523_210747_V06.nc
+
