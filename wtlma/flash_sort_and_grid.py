@@ -15,13 +15,14 @@ import subprocess
 
 from lmatools.flashsort.gen_autorun import logger_setup, sort_files
 from lmatools.flashsort.gen_sklearn import DBSCANFlashSorter
-#from lmatools.io.LMA_h5_file import LMAh5File
-
-from my_h5_file import *
+from lmatools.flashsort.flash_stats import calculate_flash_stats
 
 from lmatools.grid.make_grids import grid_h5flashfiles, dlonlat_at_grid_center, write_cf_netcdf_latlon, write_cf_netcdf_3d_latlon
 from lmatools.vis.multiples_nc import make_plot, make_plot_3d, read_file_3d
 from six.moves import map
+import numpy as np
+
+import time
 
 
 def tfromfile(name):
@@ -64,12 +65,13 @@ def sort_flashes(files, base_sort_dir, params):
     info.close()
 
     if True:
-        cluster = DBSCANFlashSorter(params).cluster # lmatools.flashsort.gen_sklearn
-        sort_files(files, outdir, cluster)          # lmatools.flashsort.gen_autorun
+        cluster = DBSCANFlashSorter(params).cluster
+        data = sort_files(files, outdir, cluster)
     # Figure out which HDF5 files were created
-    h5_filenames = glob.glob(h5_dir+'/20%s/LYLOUT*.dat.flash.h5' %(date.strftime('%y/%b/%d')))
-    h5_filenames.sort()
-    return h5_filenames
+    # h5_filenames = glob.glob(h5_dir+'/20%s/LYLOUT*.dat.flash.h5' %(date.strftime('%y/%b/%d')))
+    # h5_filenames.sort()
+    # return h5_filenames
+    return data
 
 def grid_and_plot(h5_filenames, base_sort_dir, dx=1.0e3, dy=1.0e3, dz=1.0e3, frame_interval=60.0,
                   x_bnd=(-200.0e3, 200.0e3), y_bnd=(-200.0e3, 200.0e3), z_bnd=(0.0e3, 20.0e3),
@@ -149,10 +151,10 @@ def grid_and_plot(h5_filenames, base_sort_dir, dx=1.0e3, dy=1.0e3, dz=1.0e3, fra
         os.makedirs(outpath)
         subprocess.call(['chmod', 'a+w', outpath, plot_dir+'/20%s' %(date.strftime('%y/%b')), plot_dir+'/20%s' %(date.strftime('%y'))])
 
-    for f in nc_names_2d:
-        gridtype = f.split('dx_')[-1].replace('.nc', '')
-        var = mapping[gridtype]
-        make_plot(f, var, n_cols=n_cols, x_name='longitude', y_name='latitude', outpath = outpath)
+    # for f in nc_names_2d:
+    #     gridtype = f.split('dx_')[-1].replace('.nc', '')
+    #     var = mapping[gridtype]
+    #     make_plot(f, var, n_cols=n_cols, x_name='longitude', y_name='latitude', outpath = outpath)
 
     for f in nc_names_3d:
         gridtype = f.split('dx_')[-1].replace('.nc', '').replace('_3d', '')
@@ -160,29 +162,63 @@ def grid_and_plot(h5_filenames, base_sort_dir, dx=1.0e3, dy=1.0e3, dz=1.0e3, fra
         # grid_range = range_mapping[gridtype]
         ###Read grid files, then plot in either 2d or 3d space###
         grid, grid_name, x, y, z, t, grid_t_idx, grid_x_idx, grid_z_idx = read_file_3d(f, var, x_name='longitude', y_name='latitude', z_name='altitude')
-        make_plot_3d(grid, grid_name, x, y, z, t,
-                     grid_t_idx, grid_x_idx, grid_z_idx,
-                     n_cols = n_cols, outpath = outpath)
+        if (grid_name == 'total_energy'):
+            print('grid', grid)
+            print('grid_name', grid_name)
+            print('x', x)
+            print('y', y)
+            print('z', z)
+            print('t', t[:])
+            break
+        # make_plot_3d(grid, grid_name, x, y, z, t,
+        #              grid_t_idx, grid_x_idx, grid_z_idx,
+        #              n_cols = n_cols, outpath = outpath)
         #, grid_range=grid_range)
 
     return nc_names_2d, nc_names_3d
 
 
 if __name__ == '__main__':
-    params = {'stations':(5,99), # range of allowable numbers of contributing stations
+
+    start_time = time.time()
+
+    params = {'stations':(6,99), # range of allowable numbers of contributing stations
               'chi2':(0,1.0),    # range of allowable chi-sq values
               'distance':3000.0, 'thresh_critical_time':0.15, # space and time grouping thresholds
               'thresh_duration':3.0, # maximum expected flash duration
-              'ctr_lat':33.6, 'ctr_lon':-101.8, #center lat/lon to use for flash sorting, gridding
+              'ctr_lat':33.5, 'ctr_lon':-101.5, #center lat/lon to use for flash sorting, gridding
               'mask_length':6, # length of the hexadecimal station mask column in the LMA ASCII files
               }
     center_ID='WTLMA'
 
     data_out = sys.argv[1]
     filenames = sys.argv[2:]
-    #h5_filenames = sort_flashes(filenames, data_out, params)
+    h5_filenames = sort_flashes(filenames, data_out, params)
 
-    h5 = LMAh5File('/home/mnichol3/Coding/wx-scripts/wtlma/flash_sort/h5_files/2019/May/23/LYLOUT_190523_210000_0600.dat.flash.h5')
+    extent = [35.362, 36.992, -102.443, -100.00]
+    valid_flash_count = 0
+    valid_flashes = []
+    for flash in h5_filenames[0].flashes:
+        if ((flash.ctrlon > extent[2]) and (flash.ctrlon < extent[3]) and (flash.ctrlat > extent[0]) and (flash.ctrlat < extent[1])):
+            if (flash.area) > 0 and (flash.total_energy > 0):
+                valid_flash_count += 1
+                valid_flashes.append(flash)
+                print('Flash area: {}'.format(flash.area))
+                print('Flash energy: {}'.format(flash.total_energy))
+                print('Central lat: {}'.format(flash.ctrlat))
+                print('Central lon: {}'.format(flash.ctrlon))
+                print('-------------------------------------------------')
 
-    for event, flash in h5.gen_events_flashes():
-        print(flash)
+    with open('flash-out-05232019-2150.txt', 'w') as f:
+        for flash in valid_flashes:
+            if (type(flash.total_energy) == np.ndarray):
+                flash_energy = flash.total_energy[0]
+            else:
+                flash_energy = flash.total_energy
+
+            f.write('{}, {}, {}, {}, {}, {}, {}, {}\n'.format(flash.start, flash.end,
+                    flash.duration, flash.area, flash.ctralt, flash.ctrlat, flash.ctrlon,
+                    flash_energy))
+
+    print('Valid flashes: {}'.format(valid_flash_count))
+    print("--- {} seconds---".format(time.time() - start_time))
