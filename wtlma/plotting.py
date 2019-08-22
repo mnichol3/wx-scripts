@@ -1,32 +1,57 @@
+# Python 2.7
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 import numpy as np
 
-def plot_hist(data, num_bins=50):
+def plot_hist_area(x, y, save=False, show=True):
     """
     data: dict
         {'flash_area': area_list, 'ctr_alt': alt_list}
     """
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(8,6))
 
-    xbins = np.linspace(0, 100, 100)
+    xbins = np.linspace(0, 50, 100)
     ybins = np.linspace(0, 20000, 100)
 
-    plt.hist2d(data.values()[0], data.values()[1], bins=(xbins, ybins),
-               range=[[1, 200], [0, 20000]], norm=mcolors.PowerNorm(0.5))
-    plt.xlabel(data.keys()[0])
-    plt.ylabel(data.keys()[1])
+    hist = plt.hist2d(x, y, bins=(xbins, ybins),
+               range=[[1, 50], [0, 20000]], norm=mcolors.PowerNorm(0.5),
+               cmap=cm.hot)
 
-    plt.show()
+    plt.xlabel('Flash Area (km^2)')
+    plt.ylabel('Flash Altitude (m)')
+    # plt.title('WTLMA Flash Area vs. Altitude for 05-23-2019 2050-2200z')
+    plt.colorbar(hist[3], ax=ax)
+    plt.tight_layout()
 
-    # xbins = np.linspace(0, 200, 100)
-    # ybins = np.linspace(0, 20000, 100)
-    #
-    # counts, _, _ = np.histogram2d(data.values()[0], data.values()[1], bins=(xbins, ybins))
-    #
-    # fig, ax = plt.subplots()
-    # # ax.set_ylim([0, 19000])
-    # ax.set_xlim([0, 200])
-    # ax.pcolormesh(xbins, ybins, counts.T)
-    # #ax.set_aspect('equal', adjustable='box')
-    # plt.show()
+    if (save):
+        plt.savefig('05232019-FlashAreaVsAlt.png', dpi=300)
+    if (show):
+        plt.show()
+
+
+
+def plot_hist_dur(x, y, save=False, show=True):
+    """
+    data: dict
+        {'flash_area': area_list, 'ctr_alt': alt_list}
+    """
+    fig, ax = plt.subplots(figsize=(8,6))
+
+    xbins = np.linspace(0, 500, 100)
+    ybins = np.linspace(0, 20000, 100)
+
+    hist = plt.hist2d(x, y, bins=(xbins, ybins),
+               range=[[0, 500], [0, 20000]], norm=mcolors.PowerNorm(0.5),
+               cmap=cm.hot)
+
+    plt.xlabel('Flash Duration (ms)')
+    plt.ylabel('Flash Altitude (m)')
+    # plt.title('WTLMA Flash Area vs. Altitude for 05-23-2019 2050-2200z')
+    plt.colorbar(hist[3], ax=ax)
+    plt.tight_layout()
+
+    if (save):
+        plt.savefig('05232019-FlashDurationVsAlt.png', dpi=300)
+    if (show):
+        plt.show()
