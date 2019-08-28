@@ -69,3 +69,5 @@ def print_stats(df):
     print('     min: {}'.format(min(lon_list)))
     print('     max: {}'.format(max(lon_list)))
     print('     avg: {}\n'.format(sum(lon_list)/len(lon_list)))
+
+    print('Number of flashes: {}'.format(df.shape[0]))

@@ -1,5 +1,5 @@
-from utils import ingest, print_stats
-from plotting import plot_hist_area, plot_hist_dur
+from utils import ingest, print_stats, calc_geo_area
+from plotting import *
 
 
 if (__name__ == '__main__'):
@@ -12,5 +12,6 @@ if (__name__ == '__main__'):
 
     altitude = flash_df['ctr_alt'].tolist()
 
-    plot_hist_area(area, altitude, save=True, show=False)
+    # plot_hist_area(area, altitude, save=True, show=False)
     # plot_hist_dur(duration, altitude, save=True, show=False)
+    # plot_hist_dur_basic(duration, save=True, show=False)

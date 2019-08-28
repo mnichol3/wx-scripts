@@ -55,3 +55,19 @@ def plot_hist_dur(x, y, save=False, show=True):
         plt.savefig('05232019-FlashDurationVsAlt.png', dpi=300)
     if (show):
         plt.show()
+
+
+
+def plot_hist_dur_basic(duration, save=False, show=True):
+    fig, ax = plt.subplots(figsize=(6,4))
+
+    plt.hist(duration, bins=50, range=[0, 500], histtype='bar', ec='black')
+    plt.xlabel('Flash Duration (ms)')
+    plt.ylabel('Frequency')
+    plt.xlim(0, 500)
+    plt.tight_layout()
+
+    if (save):
+        plt.savefig('05232019-FlashDurationHist.png', dpi=300)
+    if (show):
+        plt.show()
