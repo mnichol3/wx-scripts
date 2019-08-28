@@ -21,6 +21,7 @@ from os.path import join, isdir, isfile
 from os import listdir
 import re
 from datetime import datetime, timedelta
+from math import sin, cos, sqrt, atan2, radians, degrees
 
 from localwtlmafile import LocalWtlmaFile
 
@@ -332,6 +333,121 @@ def filter_by_dist(lma_df, dist, start_point, end_point, num_pts):
     subs_df = lma_df.iloc[idxs]
 
     return subs_df, coords
+
+
+
+def calc_dist(point1, point2, units='km'):
+    """
+    Calculates the distance between two geographic coordinates in either km,
+    the default, or in meters
+
+    Parameters
+    ----------
+    point1 : tuple of floats
+        First point
+        Format: (lat, lon)
+    point2 : tuple of floats
+        Second point
+        Format: (lat, lon)
+    units : str, optional
+        If units = m, the distance will be returned in meters instead of kilometers
+    """
+    R = 6373.0  # Approx. radius of Earth, in km
+
+    lat1 = radians(point1[0])
+    lon1 = radians(point1[1])
+    lat2 = radians(point2[0])
+    lon2 = radians(point2[1])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+
+    if (units == 'm'):
+        distance = distance * 1000
+
+    return distance
+
+
+
+def calc_geod_pts(point1, point2, num_pts):
+    """
+    Calculates a number of points, num_pts, along a line defined by point1 & point2
+
+    Parameters
+    ----------
+    point1 : tuple of floats
+        First geographic coordinate pair
+        Format: (lat, lon)
+    point2 : tuple of floats
+        Second geographic coordinate pair
+        Format: (lat, lon)
+    num_pts : int
+        Number of coordinate pairs to calculate
+
+    Returns
+    -------
+    Yields a tuple of floats
+    Format: (lon, lat)
+    """
+    geod = Geod("+ellps=WGS84")
+    points = geod.npts(lon1=point1[1], lat1=point1[0], lon2=point2[1],
+                   lat2=point2[0], npts=num_pts)
+
+    for pt in points:
+        yield pt
+
+
+
+def calc_bearing(point1, point2):
+    """
+    Calculates the bearing between two points
+
+    https://gist.github.com/jeromer/2005586
+
+    Parameters
+    ----------
+    point1 : tuple of floats
+        Format: (lat, lon)
+    point2 : tuple of floats
+        Format: (lat, lon)
+
+    Returns
+    -------
+    bearing : float
+    """
+
+    lat1 = radians(point1[0])
+    lat2 = radians(point2[0])
+
+    diffLong = radians(point2[1] - point1[1])
+
+    x = sin(diffLong) * cos(lat2)
+    y = math.cos(lat1) * sin(lat2) - (sin(lat1)
+            * cos(lat2) * cos(diffLong))
+
+    initial_bearing = atan2(x, y)
+
+    # Now we have the initial bearing but math.atan2 return values
+    # from -180° to + 180° which is not what we want for a compass bearing
+    # The solution is to normalize the initial bearing as shown below
+    initial_bearing = degrees(initial_bearing)
+    bearing = (initial_bearing + 360) % 360
+    return bearing
+
+
+
+def bearing_diff(bearing1, bearing2):
+    diff = abs(bearing1 - bearing2)
+    if (diff > 360):
+        diff = abs(360 - diff)
+    if (diff > 180):
+        diff = abs(360 - diff)
+    return diff
 
 
 
