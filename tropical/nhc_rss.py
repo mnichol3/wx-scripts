@@ -70,10 +70,11 @@ def init_argparser():
     parser.add_argument("-n", "--storm_num", nargs='?', const=0,
             help="Storm number of the current tropical Atlantic Season")
 
+    parser.add_argument("-w", "--write", action="store_true", help="Write output to file")
     parser.add_argument("-a", "--address", help="Recipient email address")
 
     args = parser.parse_args()
-    
+
     return args
 
 
@@ -102,15 +103,21 @@ def main():
 
         for x in news:
 
-            curr_title = x['title'].decode('UTF-8')
-            curr_desc = x['description'].decode('UTF-8')
+            curr_title = scrub_tags(x['title'].decode('UTF-8'))
+            curr_desc = scrub_tags(x['description'].decode('UTF-8'))
 
             if ((key == 'fcstadv_atl') and (len(curr_title) > 100)):
                 curr_title = ''
 
+            if (args.write):
+                f_txt = fname[:-3] + 'txt'
+                with open(f_txt, 'w') as f:
+                    f.write(curr_title)
+                    f.write(curr_desc)
+
             if (args.address):
-                print(scrub_tags(curr_title))
-                print(scrub_tags(curr_desc))
+                print(curr_title)
+                print(curr_desc)
 
 
 
