@@ -4,6 +4,14 @@ Python 3.6
 Author: Matt Nicholson
 
 Converts a date (format: MM-DD-YYYY) into day of year (int)
+
+Example usage:
+--------------
+
+$ python date_2_doy.py '05-23-2019'
+
+09-05-2019 --> 248
+
 """
 import datetime
 import sys
@@ -31,7 +39,7 @@ def main():
 	if (type(date_str) != str):
 		raise ValueError('Date argument must be a string of format mm-dd-yyyy')
 	day_of_year = calc_day(date_str)
-	print("{} --> {}".format(date_str, day_of_year))
+	print("\n{} --> {}\n".format(date_str, day_of_year))
 
 if __name__ == '__main__':
 	main()
