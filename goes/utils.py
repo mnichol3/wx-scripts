@@ -1,4 +1,10 @@
-from os.path import isfile
+"""
+Author: Matt Nicholson
+
+Functions for processing GOES imagery files
+"""
+from os import listdir
+from os.path import isfile, join
 import pyproj
 import numpy as np
 from netCDF4 import Dataset
@@ -62,6 +68,32 @@ def trim_header(abs_path):
         abs_path = abs_path + '.nc'
 
     return abs_path
+
+
+
+def get_fnames_from_dir(base_path):
+    """
+    Get a list of the imagery files located in the base_path directory
+
+    Parameters
+    ----------
+    base_path : str
+        Absolute path of the directory holding the imagery files
+
+    Returns
+    -------
+    fnames : list of str
+        List of the filenames of the imagery files located in the base_path dir
+
+    Dependencies
+    ------------
+    > os.listdir
+    > os.path.isfile
+    > os.path.join
+    """
+    fnames = [f for f in listdir(base_path) if isfile(join(base_path, f))]
+
+    return fnames
 
 
 
@@ -138,14 +170,25 @@ def read_file_abi(abi_file, extent=None):
         Dictionar of ABI image data & metadata from the netCDF file
     """
     data_dict = {}
-    product_re = r'OR_ABI-L\d\w?-(\w{3,5})\d?-M\d'
+    product_re = r'OR_ABI-L\d\w?-(\w{3,5})[CFM]\d?-M\d'
+    sector_re = r'OR_ABI-L\d\w?-\w{3,5}([CFM]\d?)-M\d'
 
+    # Get the data product from the filename
     prod_match = re.search(product_re, abi_file)
     if (prod_match):
-        prod = prod_match.group(0)
+        prod = prod_match.group(1)
+        print(prod)
     else:
-        raise ValueError('Unable to parse ABI file product')
+        raise IOError('Unable to parse ABI product from filename')
 
+    # Get the scan sector from the filename
+    sector_match = re.search(sector_re, abi_file)
+    if (sector_match):
+        sector = sector_match.group(1)
+    else:
+        raise IOError('Unable to parse ABI scan sector from filename')
+
+    # Open the netCDF file
     fh = Dataset(abi_file, mode='r')
 
     if ('Rad' in prod):
@@ -246,6 +289,7 @@ def read_file_abi(abi_file, extent=None):
     fh = None
 
     data_dict['scan_date'] = scan_date
+    data_dict['sector'] = sector
     data_dict['sat_height'] = sat_height
     data_dict['sat_lon'] = sat_lon
     data_dict['sat_lat'] = sat_lat
@@ -422,7 +466,179 @@ def plot_geos(data_dict):
 
 
 
-def plot_mercator(data_dict, out_path):
+def plot_mercator(sat_data, plot_comms):
+    """
+    Plot the GOES-16 data on a lambert-conformal projection map. Includes ABI
+    imagery, GLM flash data, 100km, 200km, & 300km range rings, and red "+" at
+    the center point
+
+    Parameters
+    ------------
+    sat_data : dictionary
+        Dictionary of data & metadata from GOES-16 ABI file
+    plot_comms : dict
+        Dictionary containing commands on whether or not to display the plot, save
+        it, and if to save it where to save it to.
+        Keys: 'save', 'show', 'outpath'
+
+
+
+    Returns
+    ------------
+    A plot of the ABI data on a geostationary-projection map
+
+    Dependencies
+    ------------
+    > numpy
+    > cartopy.crs
+    > matplotlib
+    > pyplot
+    > matplotlib.ticker
+    > matplotlib.colors
+    > mpl_toolkits.axes_grid1.make_axes_locatable
+    > cartopy.mpl.gridliner.LONGITUDE_FORMATTER
+    > cartopy.mpl.gridliner.LATITUDE_FORMATTER
+    > matplotlib.cm
+    > cartopy.feature.NaturalEarthFeature
+    > proj_utils.scan_to_geod
+
+    Notes
+    -----
+    - Uses imshow(), preferred over plot_mercator() for that reason
+    - x & y scan_to_geod conversion handled in file reading func
+
+    The projection x and y coordinates equals
+    the scanning angle (in radians) multiplied by the satellite height
+    (http://proj4.org/projections/geos.html)
+    """
+    z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
+             'map':8, 'grid':9, 'top': 10}
+
+    # Validate the plot_comms parameter
+    if (plot_comms['save']):
+        if ((plot_comms['outpath'] is None) or (plot_comms['outpath'] == '')):
+            raise ValueError("Must provide outpath value if 'save' is True")
+
+    valid_keys = ['outpath', 'save', 'show']
+    true_keys = list(plot_comms.keys())
+    true_keys.sort()
+    if (not true_keys == valid_keys):
+        raise ValueError('Invalid plot_comm parameter')
+    if (not plot_comms['save'] and not plot_comms['show']):
+        raise ValueError("Plot 'save' and 'show' flags are both False. Halting execution as it will accomplish nothing")
+
+
+    ######### Process the satellite data in preparation for plotting #########
+
+    scan_date = sat_data['scan_date'][:-10]    # Trim off seconds & miliseconds
+    band = sat_data['band_id']
+    print('Plotting satellite image ch {} {}z'.format(band, scan_date))
+
+    crs_plt = ccrs.PlateCarree()    # DONT USE GLOBE ARG
+
+    # Define globe object
+    globe = ccrs.Globe(semimajor_axis=sat_data['semimajor_ax'],
+                       semiminor_axis=sat_data['semiminor_ax'],
+                       flattening=None, inverse_flattening=sat_data['inverse_flattening'])
+
+    # Define geostationary projection used for conveting to Mercator
+    crs_geos = ccrs.Geostationary(central_longitude=sat_data['sat_lon'],
+                                  satellite_height=sat_data['sat_height'],
+                                  false_easting=0, false_northing=0, globe=globe,
+                                  sweep_axis=sat_data['sat_sweep'])
+
+    # Transform the min x, min y, max x, & max y points from scan radians to
+    # decimal degree lat & lon in PlateCarree projection
+    trans_pts = crs_geos.transform_points(crs_plt, np.array([sat_data['x_min'], sat_data['x_max']]),
+                                          np.array([sat_data['y_min'], sat_data['y_max']]))
+
+    # Create a tuple of the points defining the extent of the satellite image
+    proj_extent = (min(trans_pts[0][0], trans_pts[1][0]),
+                   max(trans_pts[0][0], trans_pts[1][0]),
+                   min(trans_pts[0][1], trans_pts[1][1]),
+                   max(trans_pts[0][1], trans_pts[1][1]))
+
+    # Create the figure & subplot
+    fig = plt.figure(figsize=(10, 5))
+
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
+
+    # Set entire plot background black
+    ax.imshow(
+        np.tile(
+            np.array(
+                [[[0, 0, 0]]], dtype=np.uint8),
+            [2, 2, 1]),
+        origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180],
+        z_order=z_ord['bottom']
+    )
+
+    states = NaturalEarthFeature(category='cultural', scale='50m', facecolor='none',
+                             name='admin_1_states_provinces_shp')
+
+    ax.add_feature(states, linewidth=.8, edgecolor='black', z_order=z_ord['map'])
+
+    # cmap hsv looks the coolest
+    if (band == 11 or band == 13):
+        # Infrared bands
+        color = cm.binary
+        v_max = 50   # Deg C
+        v_min = -90  # Deg C
+        data = _k_2_c(sat_data['data'])     # Convert data from K to C
+    else:
+        # Non-infrared bands (most of the time will be visual)
+        color = cm.gray
+        data = sat_data['data']
+
+    # Plot the satellit imagery
+    img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
+                    vmin=v_min, vmax=v_max, zorder=z_ord['sat'])
+
+    # Set lat & lon grid tick marks
+    lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
+    lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
+
+    gl = ax.gridlines(crs=crs_plt, linewidth=1, color='gray',
+                      alpha=0.5, linestyle='--', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_right=False
+    gl.xlocator = mticker.FixedLocator(lon_ticks)
+    gl.ylocator = mticker.FixedLocator(lat_ticks)
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    # gl.xlabel_style = {'color': 'red', 'weight': 'bold'}
+    # gl.ylabel_style = {'color': 'red', 'weight': 'bold'}
+    # Unbolded to see what it looks like
+    gl.xlabel_style = {'color': 'red'}
+    gl.ylabel_style = {'color': 'red'}
+
+    cbar = plt.colorbar(img, fraction=0.046, pad=0.04)
+
+    # Increase font size of colorbar tick labels
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), fontsize=12)
+    if (sat_data['data_units'] == 'K'):
+        # Original data units is deg K but we already converted to deg C
+        cbar.set_label('Temp (deg C)', fontsize = 14, labelpad = 20)
+    else:
+        cbar.set_label('Radiance (' + sat_data['data_units'] + ')', fontsize = 14, labelpad = 20)
+
+    plt.title('GOES-16 Ch. {} {}'.format(band, scan_date),
+              fontweight='semibold', fontsize=10, loc='left')
+
+    plt.tight_layout()
+
+    fig = plt.gcf()
+    # fig.set_size_inches((8.5, 11), forward=False)
+    if (plot_comms['save']):
+        plt_fname = ''
+        fig.savefig(join(out_path, scan_date.strftime('%Y'), scan_date.strftime('%Y%m%d-%H%M')) + '.png', dpi=500)
+
+    #plt.show()
+    plt.close(fig)
+
+
+
+def plot_mercator2(data_dict, out_path):
     """
     Plot the GOES-16 data on a lambert-conformal projection map. Includes ABI
     imagery, GLM flash data, 100km, 200km, & 300km range rings, and red "+" at
@@ -438,13 +654,14 @@ def plot_mercator(data_dict, out_path):
     ------------
     A plot of the ABI data on a geostationary-projection map
 
+    Notes
+    -----
+    - Uses georeference() and pcolormesh
+
     The projection x and y coordinates equals
     the scanning angle (in radians) multiplied by the satellite height
     (http://proj4.org/projections/geos.html)
     """
-    print('Warning: goes_utils.plot_mercator has depricated')
-    print('Matts too lazy to modify this function to use imshow')
-    sys.exit(0)
     scan_date = data_dict['scan_date']
     data = data_dict['data']
 
@@ -817,6 +1034,24 @@ def _gamma_corr(ref):
     """
     gamma_ref = np.sqrt(ref)
     return gamma_ref
+
+
+
+def _k_2_c(data):
+    """
+    Converts input from degrees Kelvin to degrees Celsius
+
+    Parameters
+    ----------
+    data : int, float, or numpy array
+        Temperature to be converted from kelvin to celsius
+
+    Returns
+    -------
+    float or numpy array
+        Input parameter in degrees celsius
+    """
+    return (data - 273.15)
 
 
 
