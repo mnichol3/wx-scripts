@@ -288,6 +288,7 @@ def read_file_abi(abi_file, extent=None):
 
     data_dict['scan_date'] = scan_date
     data_dict['sector'] = sector
+    data_dict['product'] = prod
     data_dict['sat_height'] = sat_height
     data_dict['sat_lon'] = sat_lon
     data_dict['sat_lat'] = sat_lat
@@ -601,7 +602,8 @@ def plot_mercator(sat_data, plot_comms):
     # fig.set_size_inches((8.5, 11), forward=False)
     if (plot_comms['save']):
         plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
-        fig.savefig(join(plot_comms['out_path'], plt_fname), dpi=500)
+        print('     Saving figure as {}'.format(plt_fname))
+        fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
     if (plot_comms['show']):
         plt.show()
     plt.close('all')
