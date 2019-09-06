@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import matplotlib.ticker as mticker
 import matplotlib.colors as colors
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import matplotlib.cm as cm
 from cartopy.feature import NaturalEarthFeature
@@ -27,6 +26,8 @@ from shapely.geometry import Point
 
 from localglmfile import LocalGLMFile
 from proj_utils import geod_to_scan, scan_to_geod
+
+from sys import exit
 
 
 def trim_header(abs_path):
@@ -177,7 +178,6 @@ def read_file_abi(abi_file, extent=None):
     prod_match = re.search(product_re, abi_file)
     if (prod_match):
         prod = prod_match.group(1)
-        print(prod)
     else:
         raise IOError('Unable to parse ABI product from filename')
 
@@ -209,8 +209,6 @@ def read_file_abi(abi_file, extent=None):
     data_dict['semimajor_ax'] = fh.variables['goes_imager_projection'].semi_major_axis
     data_dict['semiminor_ax'] = fh.variables['goes_imager_projection'].semi_minor_axis
     data_dict['inverse_flattening'] = fh.variables['goes_imager_projection'].inverse_flattening
-    #data_dict['latitude_of_projection_origin'] = fh.variables['goes_imager_projection'].latitude_of_projection_origin
-    #data_dict['longitude_of_projection_origin'] = fh.variables['goes_imager_projection'].longitude_of_projection_origin
 
     data_dict['data_units'] = fh.variables[prod_key].units
 
@@ -219,6 +217,7 @@ def read_file_abi(abi_file, extent=None):
 
     # Datetime of scan
     scan_date = datetime(2000, 1, 1, 12) + timedelta(seconds=float(add_seconds))
+    scan_date = datetime.strftime(scan_date, '%Y%m%d-%H:%M:%S') # Format: YYYYMMDD-HH:MM:SS (UTC)
 
     # Satellite height in meters
     sat_height = fh.variables['goes_imager_projection'].perspective_point_height
@@ -265,7 +264,6 @@ def read_file_abi(abi_file, extent=None):
         y_max, x_max = scan_to_geod(fh.variables['y'][y_max], fh.variables['x'][x_max])
 
     else:
-        print('WARNING: Not subsetting ABI data!')
         data = fh.variables[prod_key][:]
 
         lat_lon_extent['n'] = fh.variables['geospatial_lat_lon_extent'].geospatial_northbound_latitude
@@ -386,37 +384,6 @@ def create_bbox(lats, lons, point1, point2):
 
 
 
-def plot_mercator(data_dict, extent_coords):
-
-    globe = ccrs.Globe(semimajor_axis=data_dict['semi_major_axis'], semiminor_axis=data_dict['semi_minor_axis'],
-                       flattening=None, inverse_flattening=data_dict['inv_flattening'])
-
-    ext_lats = [extent_coords[0][0], extent_coords[1][0]]
-    ext_lons = [extent_coords[0][1], extent_coords[1][1]]
-
-    Xs, Ys = georeference(data_dict['x'], data_dict['y'], data_dict['lon_0'], data_dict['height'],
-                          data_dict['sweep_ang_axis'])
-
-    fig = plt.figure(figsize=(10, 5))
-
-    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
-
-    states = NaturalEarthFeature(category='cultural', scale='50m', facecolor='none',
-                             name='admin_1_states_provinces_shp')
-
-    ax.add_feature(states, linewidth=.8, edgecolor='black')
-
-    ax.set_extent([min(ext_lons), max(ext_lons), min(ext_lats), max(ext_lats)], crs=ccrs.PlateCarree())
-
-    cmesh = plt.pcolormesh(Xs, Ys, data_dict['data'], vmin=0, vmax=350, transform=ccrs.PlateCarree(), cmap=cm.jet)
-    cbar = plt.colorbar(cmesh,fraction=0.046, pad=0.04)
-
-    plt.tight_layout()
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.show()
-
-
-
 def plot_geos(data_dict):
     """
     Plot the GOES-16 ABI file on a geostationary-projection map
@@ -507,14 +474,11 @@ def plot_mercator(sat_data, plot_comms):
     - Uses imshow(), preferred over plot_mercator() for that reason
     - x & y scan_to_geod conversion handled in file reading func
 
-    The projection x and y coordinates equals
-    the scanning angle (in radians) multiplied by the satellite height
-    (http://proj4.org/projections/geos.html)
     """
     z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
              'map':8, 'grid':9, 'top': 10}
 
-    # Validate the plot_comms parameter
+    ########## Validate the plot_comms parameter #########
     if (plot_comms['save']):
         if ((plot_comms['outpath'] is None) or (plot_comms['outpath'] == '')):
             raise ValueError("Must provide outpath value if 'save' is True")
@@ -529,12 +493,15 @@ def plot_mercator(sat_data, plot_comms):
 
 
     ######### Process the satellite data in preparation for plotting #########
-
-    scan_date = sat_data['scan_date'][:-10]    # Trim off seconds & miliseconds
+    scan_date = sat_data['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
     band = sat_data['band_id']
-    print('Plotting satellite image ch {} {}z'.format(band, scan_date))
+    print('Plotting satellite image Band {} {}z'.format(band, scan_date))
 
+    # Define a single PlateCarree projection object to reuse
     crs_plt = ccrs.PlateCarree()    # DONT USE GLOBE ARG
+
+    # min lon, max lon, min lat, max lat
+    axis_extent = [sat_data['x_min'], sat_data['x_max'], sat_data['y_min'], sat_data['y_max']]
 
     # Define globe object
     globe = ccrs.Globe(semimajor_axis=sat_data['semimajor_ax'],
@@ -559,9 +526,14 @@ def plot_mercator(sat_data, plot_comms):
                    max(trans_pts[0][1], trans_pts[1][1]))
 
     # Create the figure & subplot
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(8, 10))
 
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
+
+    plt.title('GOES-16 Band {} {}z'.format(band, scan_date),
+              fontsize=12, loc='left')
+
+    ax.set_extent(axis_extent)
 
     # Set entire plot background black
     ax.imshow(
@@ -570,13 +542,13 @@ def plot_mercator(sat_data, plot_comms):
                 [[[0, 0, 0]]], dtype=np.uint8),
             [2, 2, 1]),
         origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180],
-        z_order=z_ord['bottom']
+        zorder=z_ord['bottom']
     )
 
-    states = NaturalEarthFeature(category='cultural', scale='50m', facecolor='none',
+    states = NaturalEarthFeature(category='cultural', scale='10m', facecolor='none',
                              name='admin_1_states_provinces_shp')
 
-    ax.add_feature(states, linewidth=.8, edgecolor='black', z_order=z_ord['map'])
+    ax.add_feature(states, linewidth=.8, edgecolor='black', zorder=z_ord['map'])
 
     # cmap hsv looks the coolest
     if (band == 11 or band == 13):
@@ -585,56 +557,54 @@ def plot_mercator(sat_data, plot_comms):
         v_max = 50   # Deg C
         v_min = -90  # Deg C
         data = _k_2_c(sat_data['data'])     # Convert data from K to C
+        cbar_label = 'Temp (deg C)'
     else:
         # Non-infrared bands (most of the time will be visual)
         color = cm.gray
         data = sat_data['data']
+        cbar_label = 'Radiance ({})'.format(sat_data['data_units'])
 
-    # Plot the satellit imagery
+    ########## Plot the satellit imagery #########
     img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
-                    vmin=v_min, vmax=v_max, zorder=z_ord['sat'])
+                    vmin=v_min, vmax=v_max, transform=crs_geos, zorder=z_ord['sat'])
 
     # Set lat & lon grid tick marks
     lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
     lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
 
     gl = ax.gridlines(crs=crs_plt, linewidth=1, color='gray',
-                      alpha=0.5, linestyle='--', draw_labels=True)
+                      alpha=0.5, linestyle='--', draw_labels=True,
+                      zorder=z_ord['grid'])
+
     gl.xlabels_top = False
     gl.ylabels_right=False
     gl.xlocator = mticker.FixedLocator(lon_ticks)
     gl.ylocator = mticker.FixedLocator(lat_ticks)
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
-    # gl.xlabel_style = {'color': 'red', 'weight': 'bold'}
-    # gl.ylabel_style = {'color': 'red', 'weight': 'bold'}
-    # Unbolded to see what it looks like
     gl.xlabel_style = {'color': 'red'}
     gl.ylabel_style = {'color': 'red'}
 
-    cbar = plt.colorbar(img, fraction=0.046, pad=0.04)
+    cbar = _make_colorbar(ax, img, orientation='horizontal')
 
     # Increase font size of colorbar tick labels
-    plt.setp(cbar.ax.yaxis.get_ticklabels(), fontsize=12)
-    if (sat_data['data_units'] == 'K'):
-        # Original data units is deg K but we already converted to deg C
-        cbar.set_label('Temp (deg C)', fontsize = 14, labelpad = 20)
-    else:
-        cbar.set_label('Radiance (' + sat_data['data_units'] + ')', fontsize = 14, labelpad = 20)
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), fontsize=10)
 
-    plt.title('GOES-16 Ch. {} {}'.format(band, scan_date),
-              fontweight='semibold', fontsize=10, loc='left')
+    cbar.set_label(cbar_label, fontsize = 10)
 
-    plt.tight_layout()
+    # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
 
-    fig = plt.gcf()
+    # Adjust surrounding whitespace
+    plt.subplots_adjust(left=0, bottom=0.05, right=1, top=0.95, wspace=0, hspace=0)
+
+    # fig = plt.gcf()
     # fig.set_size_inches((8.5, 11), forward=False)
     if (plot_comms['save']):
-        plt_fname = ''
-        fig.savefig(join(out_path, scan_date.strftime('%Y'), scan_date.strftime('%Y%m%d-%H%M')) + '.png', dpi=500)
-
-    #plt.show()
-    plt.close(fig)
+        plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
+        fig.savefig(join(plot_comms['out_path'], plt_fname), dpi=500)
+    if (plot_comms['show']):
+        plt.show()
+    plt.close('all')
 
 
 
@@ -1070,3 +1040,23 @@ def _find_nearest_idx(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
+
+
+
+def _make_colorbar(ax, mappable, **kwargs):
+    """
+    Create a custom colorbar because cartopy doesn't like to cooperate
+    """
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    import matplotlib as mpl
+
+    divider = make_axes_locatable(ax)
+    orientation = kwargs.pop('orientation', 'vertical')
+    if (orientation == 'vertical'):
+        loc = 'right'
+    elif (orientation == 'horizontal'):
+        loc = 'bottom'
+
+    cax = divider.append_axes(loc, '5%', pad='3%', axes_class=mpl.pyplot.Axes)
+    cbar = ax.get_figure().colorbar(mappable, cax=cax, orientation=orientation)
+    return cbar
