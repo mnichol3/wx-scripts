@@ -98,6 +98,32 @@ def get_fnames_from_dir(base_path):
 
 
 
+def fname_gen(base_path):
+    """
+    Similar to get_fnames_from_dir(), but creates a generator instead of returning
+    a list
+
+    Parameters
+    ----------
+    base_path : str
+        Absolute path of the directory holding the imagery files
+
+    Returns
+    -------
+    yields a str
+
+    Dependencies
+    ------------
+    > os.listdir
+    > os.path.isfile
+    > os.path.join
+    """
+    for (f in listdir(base_path)):
+        if (isfile(join(base_path, f)):
+            yield f
+
+
+
 def read_file_glm(abs_path, window=False):
     """
     Read a GLM file into a glm_obj
@@ -434,7 +460,7 @@ def plot_geos(data_dict):
 
 
 
-def plot_mercator(sat_data, plot_comms):
+def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     """
     Plot the GOES-16 data on a lambert-conformal projection map. Includes ABI
     imagery, GLM flash data, 100km, 200km, & 300km range rings, and red "+" at
@@ -442,12 +468,18 @@ def plot_mercator(sat_data, plot_comms):
 
     Parameters
     ------------
-    sat_data : dictionary
+    sat_data : dict
         Dictionary of data & metadata from GOES-16 ABI file
     plot_comms : dict
         Dictionary containing commands on whether or not to display the plot, save
         it, and if to save it where to save it to.
         Keys: 'save', 'show', 'outpath'
+    glm_data: dict, optional
+        Dictionary of data & metadata from GOES-16 GLM file
+        Currently only supports Flash Extent Density (FED) data
+    ax_extent: list, optional
+        Geographic extent of the plot.
+        Format: [min lon, max lon, min lat, max lat]
 
 
 
@@ -479,7 +511,7 @@ def plot_mercator(sat_data, plot_comms):
     z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
              'map':8, 'grid':9, 'top': 10}
 
-    ########## Validate the plot_comms parameter #########
+    #################### Validate the plot_comms parameter ####################
     if (plot_comms['save']):
         if ((plot_comms['outpath'] is None) or (plot_comms['outpath'] == '')):
             raise ValueError("Must provide outpath value if 'save' is True")
@@ -493,7 +525,7 @@ def plot_mercator(sat_data, plot_comms):
         raise ValueError("Plot 'save' and 'show' flags are both False. Halting execution as it will accomplish nothing")
 
 
-    ######### Process the satellite data in preparation for plotting #########
+    ########## Process the satellite data in preparation for plotting #########
     scan_date = sat_data['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
     band = sat_data['band_id']
     print('Plotting satellite image Band {} {}z'.format(band, scan_date))
@@ -501,8 +533,12 @@ def plot_mercator(sat_data, plot_comms):
     # Define a single PlateCarree projection object to reuse
     crs_plt = ccrs.PlateCarree()    # DONT USE GLOBE ARG
 
-    # min lon, max lon, min lat, max lat
-    axis_extent = [sat_data['x_min'], sat_data['x_max'], sat_data['y_min'], sat_data['y_max']]
+    if (ax_extent is not None):
+        axis_extent = ax_extent
+    else:
+        # min lon, max lon, min lat, max lat
+        axis_extent = [sat_data['x_min'], sat_data['x_max'],
+                       sat_data['y_min'], sat_data['y_max']]
 
     # Define globe object
     globe = ccrs.Globe(semimajor_axis=sat_data['semimajor_ax'],
@@ -565,9 +601,13 @@ def plot_mercator(sat_data, plot_comms):
         data = sat_data['data']
         cbar_label = 'Radiance ({})'.format(sat_data['data_units'])
 
-    ########## Plot the satellit imagery #########
+    ######################## Plot the satellite imagery #######################
     img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
                     vmin=v_min, vmax=v_max, transform=crs_geos, zorder=z_ord['sat'])
+
+    ######################### Plot GLM FED, if passed #########################
+    if (glm_data is not None):
+        raise NotImplementedError('GLM FED plotting not yet implemented')
 
     # Set lat & lon grid tick marks
     lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
@@ -598,8 +638,6 @@ def plot_mercator(sat_data, plot_comms):
     # Adjust surrounding whitespace
     plt.subplots_adjust(left=0, bottom=0.05, right=1, top=0.95, wspace=0, hspace=0)
 
-    # fig = plt.gcf()
-    # fig.set_size_inches((8.5, 11), forward=False)
     if (plot_comms['save']):
         plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
         print('     Saving figure as {}'.format(plt_fname))
