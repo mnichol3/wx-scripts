@@ -1,8 +1,18 @@
+"""
+Author: Matt Nicholson
+
+This file contains functions to ingest, process, and plot NOAA National Data Buoy
+Center (NDBC) buoy data. For more information on the data, see
+https://www.ndbc.noaa.gov
+"""
 import pandas as pd
 from os.path import isfile, join
 import datetime
 import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
+from sys import exit
 
 def ingest(fname):
     """
@@ -71,7 +81,13 @@ def ingest(fname):
     buoy_df = pd.read_csv(fname, sep=r'\s{1,6}', names=col_names, dtype=str,
                           skiprows=[0,1], na_values='MM', engine='python')
 
+    # Replace the original year, month, day, hr, & minute columns with a single
+    # date-time column
     buoy_df = _format_df_time(buoy_df)
+
+    # Reverse the order of the rows so time increases with depth
+    # (i.e. newest data will be at the bottom). Makes for easier plotting
+    buoy_df = buoy_df.iloc[::-1]
 
     return buoy_df
 
@@ -125,6 +141,30 @@ def filter_na_vals(df, fields):
 
 
 
+def replace_na_vals(df, val):
+    """
+    Replace the missing values with the value passed as "val"
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+    val : int, str, etc
+
+    Returns
+    -------
+    new_df : Pandas DataFrame
+        Copy of input df, but with missing values replaces
+
+    Example
+    -------
+    replace_na_vals(df, np.nan) with replace the missing data values ('MM')
+    with np.nan
+    """
+    new_df = df.replace('MM', val)
+    return new_df
+
+
+
 def subset_time(df, start, end):
     """
     Select a temporal subset from the buoy data
@@ -152,20 +192,54 @@ def subset_time(df, start, end):
     > datetime
     """
     temp_subset = _datetime_range(start, end)
-    print(temp_subset)
 
     subset = df.loc[df['dt'].isin(temp_subset)]
     return subset
 
 
 
-def plot_data(df, fields):
+################################################################################
+############################## Plotting Functions ##############################
+################################################################################
+
+def plot_pressure(df, buoy_no):
     """
-    Plot select data from the buoy dataframe
+    Plot atmospheric pressure
     """
-    return 0
+    # filtered_df = filter_na_vals(df, ['pres'])
+    filtered_df = df
+    del df
+
+    first_dt = filtered_df['dt'].iloc[0]
+    last_dt = filtered_df['dt'].iloc[-1]
+
+    x_ticks = _calc_x_ticks(filtered_df['dt'].tolist())
+    x_tick_labels = ['{}/{}\n{}'.format(x[4:6], x[6:8], x.split('-')[1]) for x in x_ticks]
+
+    fig, ax = plt.subplots()
+    ax.plot(filtered_df['dt'].tolist(), [float(x) for x in filtered_df['pres'].tolist()])
+
+    ax.set(xlabel='Date & Time (UTC)', ylabel='Pressure (hPa)',
+           title='NDBC Station {} Atmospheric Pressure {}z - {}z'.format(buoy_no, first_dt, last_dt))
+
+    plt.xticks(ticks=x_ticks,fontsize=10)
+    ax.set_xticklabels(x_tick_labels)
+
+    ax.grid()
+    plt.tight_layout()
+    plt.show()
 
 
+
+################################################################################
+############################### Helper Functions ###############################
+################################################################################
+
+
+
+def _calc_x_ticks(datetimes):
+    ticks = [x for x in datetimes if ((x[-2:] == '00') and (int(x[-4:]) % 3 == 0))]
+    return ticks
 
 
 
@@ -236,14 +310,19 @@ def _datetime_range(start, end):
 def main():
     base_path = '/media/mnichol3/tsb1/data/storms/2019-dorian'
     fname = '41025_5day.txt'
+    buoy_no = '41025'
     abs_path = join(base_path, fname)
 
     # Raw buoy data df
     buoy_df = ingest(abs_path)
+    buoy_df = replace_na_vals(buoy_df, np.NaN)
+    # print(buoy_df)
+    # exit(0)
 
     # Get the temporal subset we're interested in
-    buoy_df = subset_time(buoy_df, '20190909-0050', '20190909-1450')
-
+    buoy_df = subset_time(buoy_df, '20190905-0000', '20190908-0000')
+    print(buoy_df)
+    plot_pressure(buoy_df, buoy_no)
 
 
 
