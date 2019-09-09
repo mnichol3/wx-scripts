@@ -33,6 +33,8 @@ import cartopy.crs as ccrs
 from os.path import join
 import numpy as np
 import datetime
+import pandas as pd
+from os.path import isfile
 
 from sys import exit
 
@@ -183,6 +185,93 @@ def plot_track(shp_path, storm_name, year, extent=None, show=True, save=False, o
 
 
 
+
+def to_file(shp_path, outpath):
+    """
+    Read the shapefile into Pandas DataFrame and write it to csv file
+
+    Parameters
+    ----------
+    shp_path : str
+        Absolute path, including the filename, of the best track shapefile to open
+        & read
+    outpath : str
+        Absolute path, including the filename, of the csv/txt file to write
+        the best track data to
+
+    Returns
+    -------
+    outpath : str
+        Absolute path, including the filename, of the csv/txt file to write
+        the best track data to
+    """
+    col_names = ['date-time', 'name', 'storm_num', 'basin', 'lat',
+                 'lon', 'mslp', 'storm_type', 'wind', 'ss']
+    data = []
+
+    shp_reader = shpreader.Reader(shp_path)
+
+    track_pts = list(shp_reader.geometries())
+    lons = [pt.x for pt in track_pts]
+    lats = [pt.y for pt in track_pts]
+
+    for rec in shp_reader.records():
+        dt = '{}{}{}-{}'.format(rec.attributes['MONTH'], rec.attributes['DAY'],
+                                rec.attributes['YEAR'], rec.attributes['HHMM'])
+        lon = rec.geometry.x
+        lat = rec.geometry.y
+        name = rec.attributes['STORMNAME']
+        storm_num = rec.attributes['STORMNUM']
+        basin = rec.attributes['BASIN']
+        mslp = rec.attributes['MSLP']
+        storm_type = rec.attributes['STORMTYPE']
+        wind = rec.attributes['INTENSITY']
+        ss = rec.attributes['SS']
+
+        curr_dict = {'date-time': dt,
+                    'name': name,
+                    'storm_num': storm_num,
+                    'basin': basin,
+                    'lon': lon,
+                    'lat': lat,
+                    'storm_type': storm_type,
+                    'mslp': mslp,
+                    'wind': wind,
+                    'ss': ss
+                    }
+
+        data.append(curr_dict)
+
+    df = pd.DataFrame(data, columns=col_names)
+
+    df.to_csv(outpath, sep=',', header=col_names, index=False)
+
+
+
+def csv_to_df(abs_path):
+    """
+    Read a best track csv into a Pandas DataFrame
+
+    Parameters
+    ----------
+    abs_path : str
+        Absolute path, including the filename, of the csv/txt file to read
+
+    Returns
+    -------
+    df : Pandas DataFrame
+        DataFrame containing the best track data
+        Column names: ['date-time', 'name', 'storm_num', 'basin', 'lat',
+                       'lon', 'mslp', 'storm_type', 'wind', 'ss']
+    """
+    if (isfile(abs_path)):
+        df = pd.read_csv(abs_path, sep=',', header=0)
+        return df
+    else:
+        raise FileNotFoundError('File not found: {}'.format(abs_path))
+
+
+
 def pp_meta(meta_dict):
     """
     Pretty print func for meta dict
@@ -201,7 +290,12 @@ def pp_meta(meta_dict):
 
 shp_path = '/media/mnichol3/tsb1/data/storms/2019-dorian/al052019_initial_best_track/AL052019_pts.shp'
 
-meta = get_besttrack_meta(shp_path)
-pp_meta(meta)
-extent = [5.935, 40.031, -88.626, -40.285]
-plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
+# meta = get_besttrack_meta(shp_path)
+# pp_meta(meta)
+
+# txt_out = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track.txt'
+# to_file(shp_path, txt_out)
+# # print(csv_to_df(txt_out))
+
+# extent = [5.935, 40.031, -88.626, -40.285]
+# plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
