@@ -1,5 +1,7 @@
 import pandas as pd
 from os.path import isfile, join
+import datetime
+import numpy as np
 
 
 def ingest(fname):
@@ -50,6 +52,11 @@ def ingest(fname):
 
         For a full explaination of the Standard Meteorological Data fields,
         see http://ndbc.noaa.gov/measdes.shtml
+
+    Dependencies
+    ------------
+    > os.path.isfile
+    > pandas
     """
     # Validate the absolute path
     if (not isfile(fname)):
@@ -63,6 +70,8 @@ def ingest(fname):
     # separators
     buoy_df = pd.read_csv(fname, sep=r'\s{1,6}', names=col_names, dtype=str,
                           skiprows=[0,1], na_values='MM', engine='python')
+
+    buoy_df = _format_df_time(buoy_df)
 
     return buoy_df
 
@@ -86,6 +95,10 @@ def filter_na_vals(df, fields):
     filtered_df : pandas dataframe
         Pandas dataframe with the rows containing NaN values for the specified
         fields removed
+
+    Dependencies
+    ------------
+    > pandas
     """
     # Validate df param
     if (not isinstance(df, pd.DataFrame)):
@@ -112,9 +125,99 @@ def filter_na_vals(df, fields):
 
 
 
+def subset_time(df, start, end):
+    """
+    Select a temporal subset from the buoy data
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        DataFrame containing the buoy data. See ingest() docstring for
+        column names and descriptions
+    start : str
+        Date & time that defines the beginning of the temporal subset
+        Format: DDMMYY-HHMM (Time is in universal time coordinates)
+    end : str
+        Date & time that defines the end of the temporal subset
+        Format: DDMMYY-HHMM (Time is in universal time coordinates)
+
+    Returns
+    -------
+    subset : Pandas DataFrame
+        DataFrame containing data for the temporal subset defined by the 'start'
+        and 'end' parameters. Column names are the same as the input DataFrame
+
+    Dependencies
+    ------------
+    > datetime
+    """
+    start_dt = datetime.datetime.strptime(start, "%m%d%Y-%H%M")
+    end_dt = datetime.datetime.strptime(end, "%m%d%Y-%H%M")
+    return 0
+
+
+
+def plot_data(df, fields):
+    """
+    Plot select data from the buoy dataframe
+    """
+    return 0
+
+
+
+
+
+def _format_df_time(df):
+    """
+    Format a buoy DataFrame's time and combine into one column
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+
+    Returns
+    -------
+    new_df : Pandas DataFrame
+        DataFrame with 'yr', 'mon', 'day', 'hr', & 'min' columns replaced by
+        'date'
+
+    Dependencies
+    ------------
+    > pandas
+    > datetime
+    """
+    datetimes = []
+    for idx, yr in enumerate(df['yr'].tolist()):
+        curr_row = df.iloc[idx]
+        curr_dt = '{}{}{}-{}{}'.format(curr_row['yr'], curr_row['mon'],
+                                       curr_row['day'], curr_row['hr'],
+                                       curr_row['min'])
+        curr_dt = datetime.datetime.strptime(curr_dt, "%Y%m%d-%H%M")
+        curr_dt = datetime.datetime.strftime(curr_dt, "%Y%m%d-%H%M")
+        datetimes.append(curr_dt)
+
+    # datetimes = np.array(datetimes)
+
+    # Remove the yr, mon, day, hr, & min columns as we dont need them anymore
+    new_df = df.drop(['yr', 'mon', 'day', 'hr', 'min'], axis=1)
+
+    # Add the new datetime list as a column. Will be added as the last colunmn
+    new_df['dt'] = datetimes
+
+    # Reorder the columns so that ['dt'] is on the left to increase readability
+    cols = new_df.columns.tolist()
+    cols = cols[-1:] + cols[:-1]
+    new_df = new_df[cols]
+
+    return new_df
+
+
+
 base_path = '/media/mnichol3/tsb1/data/storms/2019-dorian'
 fname = '41025_5day.txt'
 abs_path = join(base_path, fname)
 buoy_df = ingest(abs_path)
-print(buoy_df.shape)
-filtered_df = filter_na_vals(buoy_df, 'all')
+
+# print(buoy_df.shape)
+# filtered_df = filter_na_vals(buoy_df, 'wvht')
+# print(filtered_df)
