@@ -34,6 +34,8 @@ from os.path import join
 import numpy as np
 import datetime
 
+from sys import exit
+
 
 
 def get_besttrack_meta(shp_path):
@@ -61,7 +63,7 @@ def get_besttrack_meta(shp_path):
 
     # Get the date & time of the first record
     first_dt = '{}{}{}-{}'.format(first_rec.attributes['MONTH'], first_rec.attributes['DAY'],
-                                   first_rec.attributes['YEAR'], first_rec.attributes['HHMM'])
+                                  first_rec.attributes['YEAR'], first_rec.attributes['HHMM'])
 
     first_dt = datetime.datetime.strptime(first_dt, "%m%d%Y-%H%M")
     first_dt = datetime.datetime.strftime(first_dt, "%m%d%Y-%H:%M")
@@ -92,6 +94,7 @@ def get_besttrack_meta(shp_path):
     last_dt = datetime.datetime.strptime(last_dt, "%m%d%Y-%H%M")
     last_dt = datetime.datetime.strftime(last_dt, "%m%d%Y-%H:%M")
 
+    meta['year'] = rec.attributes['YEAR']
     meta['first_dt'] = first_dt
     meta['last_dt'] = last_dt
     meta['storm_name'] = storm_name
@@ -105,21 +108,37 @@ def get_besttrack_meta(shp_path):
 
 
 
-def plot_track(shp_path, outpath, extent=None, save=False, show=True):
-    state_path = '/media/mnichol3/tsb1/data/gis/nws_s_11au16/s_11au16.shp'
-    z_ord = {'track': 2, 'map': 1, 'base': 0}
-    plt_extent = [extent[2], extent[3], extent[0], extent[1]]
+def plot_track(shp_path, storm_name, year, extent=None, show=True, save=False, outpath=None):
+    """
 
-    shp_reader = shpreader.Reader(shp_path)
-    track_recs = list(shp_reader.records())
-    track_pts_geo = list(shp_reader.geometries())
-    track_pts = cfeature.ShapelyFeature(track_pts_geo, crs_plt)
+    extent: [ymin, ymax, xmin, xmax] aka [min_lat, max_lat, min_lon, max_lon]
+    """
 
-    states = shpreader.Reader(state_path)
-    states = list(states.geometries())
-    states = cfeature.ShapelyFeature(states, crs_plt)
+    z_ord = {'base': 0,
+             'land': 1,
+             'states': 2,
+             'track': 3,
+             'top': 10
+             }
 
     crs_plt = ccrs.PlateCarree()
+
+    if (extent):
+        plt_extent = [extent[2], extent[3], extent[0], extent[1]]
+    else:
+        # x0, x1, y0, y1
+        plt_extent = [-180, 0, 0, 90]
+
+    shp_reader = shpreader.Reader(shp_path)
+    track_pts = list(shp_reader.geometries())
+    lons = [pt.x for pt in track_pts]
+    lats = [pt.y for pt in track_pts]
+
+    land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m', facecolor='none')
+    states_50m = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+                                              scale='50m', facecolor='none')
+    countries_50m = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+                                                 scale='50m', facecolor='none')
 
     fig = plt.figure(figsize=(12, 8))
 
@@ -131,17 +150,20 @@ def plot_track(shp_path, outpath, extent=None, save=False, show=True):
             np.array(
                 [[[0, 0, 0]]], dtype=np.uint8),
             [2, 2, 1]),
-        origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180]
+        origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180],
+        zorder=z_ord['base']
     )
 
-    ax.add_feature(states, linewidth=.8, facecolor='black',
-                   edgecolor='gray', zorder=z_ord['map'])
+    ax.add_feature(land_50m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
+    ax.add_feature(countries_50m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
+    ax.add_feature(states_50m, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
 
-    # ax.add_feature(track_pts, linewidth=.8, facecolor='none', edgecolor='yellow', zorder=z_ord['wwa'])
+    ax.plot(lons, lats, color='red', marker='o',
+            transform=crs_plt, zorder=z_ord['track'])
 
-    plt.title('NHC Best Track - {} {}'.format(year, storm_name),
-              loc='right',
-              fontsize=12)
+    ax.set_extent(plt_extent, crs=crs_plt) # [x0, x1, y0, y1]
+
+    plt.title('NHC Best Track {}-{}'.format(year, storm_name), loc='right', fontsize=12)
 
     plt.gca().set_aspect('equal', adjustable='box')
 
@@ -175,6 +197,11 @@ def pp_meta(meta_dict):
         print('{} --> {}'.format(key.ljust(max_len), val))
 
 
+
+
 shp_path = '/media/mnichol3/tsb1/data/storms/2019-dorian/al052019_initial_best_track/AL052019_pts.shp'
+
 meta = get_besttrack_meta(shp_path)
 pp_meta(meta)
+extent = [5.935, 40.031, -88.626, -40.285]
+plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
