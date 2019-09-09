@@ -386,7 +386,7 @@ def main():
 
     # Get the temporal subset we're interested in
     buoy_df = subset_time(buoy_df, '20190905-0000', '20190908-0000')
-    print(buoy_df)
+    
     # plot_pressure(buoy_df, buoy_no)
     plot_pressure_wind(buoy_df, buoy_no)
 
