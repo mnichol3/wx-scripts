@@ -204,10 +204,20 @@ def subset_time(df, start, end):
 
 def plot_pressure(df, buoy_no):
     """
-    Plot atmospheric pressure
+    Plot atmospheric pressure vs time
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        DataFrame containing the buoy data
+    buoy_no : str
+        NDBC buoy number for use in the title
     """
-    # filtered_df = filter_na_vals(df, ['pres'])
-    filtered_df = df
+
+    # Replace any missing data values ("MM") with Numpy.NaN so the plotting
+    # function can handle them
+    filtered_df = replace_na_vals(df, np.NaN)
+
     del df
 
     first_dt = filtered_df['dt'].iloc[0]
@@ -227,6 +237,61 @@ def plot_pressure(df, buoy_no):
 
     ax.grid()
     plt.tight_layout()
+    plt.show()
+
+
+
+def plot_pressure_wind(df, buoy_no):
+    """
+    Plot atmospheric pressure vs time and wind speed vs time
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        DataFrame containing the buoy data
+    buoy_no : str
+        NDBC buoy number for use in the title
+    """
+
+    # Replace any missing data values ("MM") with Numpy.NaN so the plotting
+    # function can handle them
+    filtered_df = replace_na_vals(df, np.NaN)
+
+    del df
+
+    first_dt = filtered_df['dt'].iloc[0]
+    last_dt = filtered_df['dt'].iloc[-1]
+
+    x_ticks = _calc_x_ticks(filtered_df['dt'].tolist())
+    x_tick_labels = ['{}/{}\n{}'.format(x[4:6], x[6:8], x.split('-')[1]) for x in x_ticks]
+
+    fig, ax1 = plt.subplots()
+    color = 'tab:red'
+    ax1.plot(filtered_df['dt'].tolist(), [float(x) for x in filtered_df['pres'].tolist()],
+             color=color)
+    ax1.set_xlabel('Date & Time (UTC)')
+    ax1.set_ylabel('Pressure (hPa)', color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    plt.xticks(ticks=x_ticks,fontsize=10)
+    ax1.set_xticklabels(x_tick_labels)
+
+    # Clone the axis and plot wind speed on it
+
+    ax2 = ax1.twinx()
+
+    color = 'tab:blue'
+    ax2.set_ylabel('Wind Speed (m/s)', color=color)
+    ax2.plot(filtered_df['dt'].tolist(), [float(x) for x in filtered_df['wspd'].tolist()],
+             color=color)
+
+    ax2.tick_params(axis='y', labelcolor=color)
+    plt.xticks(ticks=x_ticks,fontsize=10)
+    ax2.set_xticklabels(x_tick_labels)
+
+    ax1.grid()
+    plt.title('NDBC Station {} Atmospheric Pressure & Wind Speed {}z - {}z'.format(buoy_no, first_dt, last_dt))
+    # plt.tight_layout()
     plt.show()
 
 
@@ -322,7 +387,8 @@ def main():
     # Get the temporal subset we're interested in
     buoy_df = subset_time(buoy_df, '20190905-0000', '20190908-0000')
     print(buoy_df)
-    plot_pressure(buoy_df, buoy_no)
+    # plot_pressure(buoy_df, buoy_no)
+    plot_pressure_wind(buoy_df, buoy_no)
 
 
 
