@@ -151,9 +151,11 @@ def subset_time(df, start, end):
     ------------
     > datetime
     """
-    start_dt = datetime.datetime.strptime(start, "%m%d%Y-%H%M")
-    end_dt = datetime.datetime.strptime(end, "%m%d%Y-%H%M")
-    return 0
+    temp_subset = _datetime_range(start, end)
+    print(temp_subset)
+
+    subset = df.loc[df['dt'].isin(temp_subset)]
+    return subset
 
 
 
@@ -213,11 +215,37 @@ def _format_df_time(df):
 
 
 
-base_path = '/media/mnichol3/tsb1/data/storms/2019-dorian'
-fname = '41025_5day.txt'
-abs_path = join(base_path, fname)
-buoy_df = ingest(abs_path)
+def _datetime_range(start, end):
+    """
+    Creates a range of datetime objects for the period defined by start & end
+    """
+    start_dt = datetime.datetime.strptime(start, "%Y%m%d-%H%M")
+    end_dt = datetime.datetime.strptime(end, "%Y%m%d-%H%M")
 
-# print(buoy_df.shape)
-# filtered_df = filter_na_vals(buoy_df, 'wvht')
-# print(filtered_df)
+    diff = (end_dt + datetime.timedelta(minutes = 10)) - start_dt
+
+    datetimes = []
+    for x in range(int(diff.total_seconds() / 600)):
+        curr_dt = start_dt + datetime.timedelta(minutes = x*10)
+        datetimes.append(datetime.datetime.strftime(curr_dt, "%Y%m%d-%H%M"))
+
+    return datetimes
+
+
+
+def main():
+    base_path = '/media/mnichol3/tsb1/data/storms/2019-dorian'
+    fname = '41025_5day.txt'
+    abs_path = join(base_path, fname)
+
+    # Raw buoy data df
+    buoy_df = ingest(abs_path)
+
+    # Get the temporal subset we're interested in
+    buoy_df = subset_time(buoy_df, '20190909-0050', '20190909-1450')
+
+
+
+
+if __name__ == '__main__':
+    main()
