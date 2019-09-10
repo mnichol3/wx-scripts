@@ -110,6 +110,198 @@ def get_besttrack_meta(shp_path):
 
 
 
+def pp_meta(meta_dict):
+    """
+    Pretty print func for meta dict
+    """
+    # Determine the length of the longest key
+    keys = list(meta_dict.keys())
+    max_len = len(max(keys, key=len))
+
+    for key, val in meta_dict.items():
+        # Print the key with appended spaces to the end to make it the same
+        # length as the longest key
+        print('{} --> {}'.format(key.ljust(max_len), val))
+
+
+
+################################################################################
+################################ I/O Functions #################################
+################################################################################
+
+
+
+def shp_to_df(shp_path, outpath=None, write=False):
+    """
+    Read the shapefile into Pandas DataFrame and write it to csv file if desired
+
+    Parameters
+    ----------
+    shp_path : str
+        Absolute path, including the filename, of the best track shapefile to open
+        & read
+    outpath : str, optional
+        Absolute path, including the filename, of the csv/txt file to write
+        the best track data to. Required if writing to file
+    write: bool, optional
+        If True, the dataframe will be written to a file specified by the
+        'outpath' parameter. Default: False
+
+    Returns
+    -------
+    df : Pandas Dataframe
+
+    """
+    col_names = ['date-time', 'name', 'storm_num', 'basin', 'lat',
+                 'lon', 'mslp', 'storm_type', 'wind', 'ss']
+    data = []
+
+    shp_reader = shpreader.Reader(shp_path)
+
+    track_pts = list(shp_reader.geometries())
+    lons = [pt.x for pt in track_pts]
+    lats = [pt.y for pt in track_pts]
+
+    for rec in shp_reader.records():
+        dt = '{}-{}-{}-{}'.format(
+                                str(rec.attributes['MONTH']).zfill(2),
+                                str(rec.attributes['DAY']).zfill(2),
+                                rec.attributes['YEAR'],
+                                rec.attributes['HHMM']
+                                )
+        lon = rec.geometry.x
+        lat = rec.geometry.y
+        name = rec.attributes['STORMNAME']
+        storm_num = rec.attributes['STORMNUM']
+        basin = rec.attributes['BASIN']
+        mslp = rec.attributes['MSLP']
+        storm_type = rec.attributes['STORMTYPE']
+        wind = rec.attributes['INTENSITY']
+        ss = rec.attributes['SS']
+
+        curr_dict = {'date-time': dt,
+                    'name': name,
+                    'storm_num': storm_num,
+                    'basin': basin,
+                    'lon': lon,
+                    'lat': lat,
+                    'storm_type': storm_type,
+                    'mslp': mslp,
+                    'wind': wind,
+                    'ss': ss
+                    }
+
+        data.append(curr_dict)
+
+    df = pd.DataFrame(data, columns=col_names)
+    df = df.set_index('date-time')
+
+    if (write):
+        if (outpath):
+            df.to_csv(outpath, sep=',', header=col_names)
+    return df
+
+
+
+def csv_to_df(abs_path):
+    """
+    Read a best track csv into a Pandas DataFrame
+
+    Parameters
+    ----------
+    abs_path : str
+        Absolute path, including the filename, of the csv/txt file to read
+
+    Returns
+    -------
+    df : Pandas DataFrame
+        DataFrame containing the best track data
+        Column names: ['date-time', 'name', 'storm_num', 'basin', 'lat',
+                       'lon', 'mslp', 'storm_type', 'wind', 'ss']
+
+        or
+
+        col_names = ['date-time', 'storm_num', 'lat', 'lon', 'mslp', 'wind', 'ss']
+        if reading an interpolated data file
+    """
+    if (isfile(abs_path)):
+        df = pd.read_csv(abs_path, sep=',', header=0, index_col='date-time')
+        return df
+    else:
+        raise FileNotFoundError('File not found: {}'.format(abs_path))
+
+
+
+def df_to_csv(df, outpath):
+    """
+    Write a DataFrame to csv file
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        DataFrame to write to file
+    outpath : str
+        Absolute path, including filename, to write the csv to
+    """
+    if (df.shape[1] == 6):
+        col_names = ['storm_num', 'lat', 'lon', 'mslp', 'wind', 'ss']
+    else:
+        col_names = ['name', 'storm_num', 'basin', 'lat',
+                     'lon', 'mslp', 'storm_type', 'wind', 'ss']
+
+    df.to_csv(outpath, sep=',', header=col_names, index=True, index_label='date-time')
+
+
+
+################################################################################
+############################# Plotting Functions ###############################
+################################################################################
+
+
+def interp_df(df):
+    """
+    Interpolate the dataframe to 1-minute
+
+    Parameters
+    ----------
+    df : Pandas Dataframe
+        Dataframe to interpolate
+
+    Returns
+    -------
+    df : Pandas Dataframe
+        Dataframe containing interpolated data.
+        Column names: ['storm_num', 'lat', 'lon', 'mslp', 'wind', 'ss']
+    """
+
+    start_dt = df.index[0]
+    start_dt = datetime.datetime.strptime(start_dt, '%m-%d-%Y-%H%M')
+
+    end_dt = df.index[-1]
+    end_dt = datetime.datetime.strptime(end_dt, '%m-%d-%Y-%H%M')
+
+    # Convert the index type from str to pandas timestamp
+    df.index = pd.to_datetime(df.index, format='%m-%d-%Y-%H%M')
+
+    # Calculate the times between start & end that we want to interpolate
+    # data for
+    interp_times = pd.date_range(start=start_dt, end=end_dt, freq='min')
+
+    # Resample the dataframe for 1-min
+    # Resampling removes 'name', 'basin', & 'storm_type' columns
+    # Resulting columns are: date-time (index), ['storm_num', 'lat', 'lon',
+    #                                            'mslp', 'wind', 'ss']
+    df = df.resample('1T').sum()
+
+    # Set 0 values after the first row to NaN to prepare for interpolation
+    df[df.iloc[1:] == 0] = np.NaN
+
+    df = df.interpolate(method='time', limit_direction='forward')
+
+    return df
+
+
+
 def plot_track(shp_path, storm_name, year, extent=None, show=True, save=False, outpath=None):
     """
 
@@ -186,116 +378,25 @@ def plot_track(shp_path, storm_name, year, extent=None, show=True, save=False, o
 
 
 
-def to_file(shp_path, outpath):
-    """
-    Read the shapefile into Pandas DataFrame and write it to csv file
 
-    Parameters
-    ----------
-    shp_path : str
-        Absolute path, including the filename, of the best track shapefile to open
-        & read
-    outpath : str
-        Absolute path, including the filename, of the csv/txt file to write
-        the best track data to
+def main():
+    shp_path = '/media/mnichol3/tsb1/data/storms/2019-dorian/al052019_initial_best_track/AL052019_pts.shp'
+    # txt_out = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track.txt'
+    txt_out = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp.txt'
 
-    Returns
-    -------
-    outpath : str
-        Absolute path, including the filename, of the csv/txt file to write
-        the best track data to
-    """
-    col_names = ['date-time', 'name', 'storm_num', 'basin', 'lat',
-                 'lon', 'mslp', 'storm_type', 'wind', 'ss']
-    data = []
+    meta = get_besttrack_meta(shp_path)
+    pp_meta(meta)
 
-    shp_reader = shpreader.Reader(shp_path)
+    df = shp_to_df(shp_path)
+    df = interp_df(df)
+    df_to_csv(df, txt_out)
+    print(df)
 
-    track_pts = list(shp_reader.geometries())
-    lons = [pt.x for pt in track_pts]
-    lats = [pt.y for pt in track_pts]
 
-    for rec in shp_reader.records():
-        dt = '{}{}{}-{}'.format(rec.attributes['MONTH'], rec.attributes['DAY'],
-                                rec.attributes['YEAR'], rec.attributes['HHMM'])
-        lon = rec.geometry.x
-        lat = rec.geometry.y
-        name = rec.attributes['STORMNAME']
-        storm_num = rec.attributes['STORMNUM']
-        basin = rec.attributes['BASIN']
-        mslp = rec.attributes['MSLP']
-        storm_type = rec.attributes['STORMTYPE']
-        wind = rec.attributes['INTENSITY']
-        ss = rec.attributes['SS']
-
-        curr_dict = {'date-time': dt,
-                    'name': name,
-                    'storm_num': storm_num,
-                    'basin': basin,
-                    'lon': lon,
-                    'lat': lat,
-                    'storm_type': storm_type,
-                    'mslp': mslp,
-                    'wind': wind,
-                    'ss': ss
-                    }
-
-        data.append(curr_dict)
-
-    df = pd.DataFrame(data, columns=col_names)
-
-    df.to_csv(outpath, sep=',', header=col_names, index=False)
+    # extent = [5.935, 40.031, -88.626, -40.285]
+    # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
 
 
 
-def csv_to_df(abs_path):
-    """
-    Read a best track csv into a Pandas DataFrame
-
-    Parameters
-    ----------
-    abs_path : str
-        Absolute path, including the filename, of the csv/txt file to read
-
-    Returns
-    -------
-    df : Pandas DataFrame
-        DataFrame containing the best track data
-        Column names: ['date-time', 'name', 'storm_num', 'basin', 'lat',
-                       'lon', 'mslp', 'storm_type', 'wind', 'ss']
-    """
-    if (isfile(abs_path)):
-        df = pd.read_csv(abs_path, sep=',', header=0)
-        return df
-    else:
-        raise FileNotFoundError('File not found: {}'.format(abs_path))
-
-
-
-def pp_meta(meta_dict):
-    """
-    Pretty print func for meta dict
-    """
-    # Determine the length of the longest key
-    keys = list(meta_dict.keys())
-    max_len = len(max(keys, key=len))
-
-    for key, val in meta_dict.items():
-        # Print the key with appended spaces to the end to make it the same
-        # length as the longest key
-        print('{} --> {}'.format(key.ljust(max_len), val))
-
-
-
-
-shp_path = '/media/mnichol3/tsb1/data/storms/2019-dorian/al052019_initial_best_track/AL052019_pts.shp'
-
-# meta = get_besttrack_meta(shp_path)
-# pp_meta(meta)
-
-# txt_out = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track.txt'
-# to_file(shp_path, txt_out)
-# # print(csv_to_df(txt_out))
-
-# extent = [5.935, 40.031, -88.626, -40.285]
-# plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
+if __name__ == '__main__':
+    main()
