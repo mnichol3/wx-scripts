@@ -253,6 +253,16 @@ def df_to_csv(df, outpath):
 
 
 
+def pp_df(df):
+    from time import sleep
+
+    for index, row in df.iterrows():
+        # ['storm_num', 'lat', 'lon', 'mslp', 'wind', 'ss']
+        print('{0}   {1:.3f}   {2:.3f}   {3:.3f}   {4:.3f}'.format(index,
+                row['lat'], row['lon'], row['mslp'], row['wind']))
+        sleep(0.1)
+
+
 ################################################################################
 ############################# Plotting Functions ###############################
 ################################################################################
@@ -302,7 +312,7 @@ def interp_df(df):
 
 
 
-def plot_track(shp_path, storm_name, year, extent=None, show=True, save=False, outpath=None):
+def plot_raw_track(shp_path, storm_name, year, extent=None, show=True, save=False, outpath=None):
     """
 
     extent: [ymin, ymax, xmin, xmax] aka [min_lat, max_lat, min_lon, max_lon]
@@ -390,9 +400,9 @@ def main():
     df = shp_to_df(shp_path)
     df = interp_df(df)
     df_to_csv(df, txt_out)
-    print(df)
+    # print(df)
 
-
+    pp_df(df)
     # extent = [5.935, 40.031, -88.626, -40.285]
     # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
 
