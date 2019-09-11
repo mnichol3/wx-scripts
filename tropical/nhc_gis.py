@@ -35,6 +35,7 @@ import numpy as np
 import datetime
 import pandas as pd
 from os.path import isfile
+import time
 
 from sys import exit
 
@@ -346,12 +347,84 @@ def interp_df(df, freq):
 
 
 
+def plot_track_from_df(df, storm_name, year, extent=None, show=True, save=False,
+                       outpath=None):
+    """
+
+    extent: [ymin, ymax, xmin, xmax] aka [min_lat, max_lat, min_lon, max_lon]
+    """
+    t_start = time.time()
+    z_ord = {'base': 0,
+             'land': 1,
+             'states': 2,
+             'track': 3,
+             'top': 10
+             }
+
+    crs_plt = ccrs.PlateCarree()
+
+    if (extent):
+        plt_extent = [extent[2], extent[3], extent[0], extent[1]]
+    else:
+        # x0, x1, y0, y1
+        plt_extent = [-180, 0, 0, 90]
+
+    land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m', facecolor='none')
+    states_50m = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+                                              scale='50m', facecolor='none')
+    countries_50m = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+                                                 scale='50m', facecolor='none')
+
+    fig = plt.figure(figsize=(12, 8))
+
+    ax = fig.add_subplot(111, projection=ccrs.Mercator())
+
+    # Set axis background color to black
+    ax.imshow(
+        np.tile(
+            np.array(
+                [[[0, 0, 0]]], dtype=np.uint8),
+            [2, 2, 1]),
+        origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180],
+        zorder=z_ord['base']
+    )
+
+    ax.add_feature(land_50m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
+    ax.add_feature(countries_50m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
+    ax.add_feature(states_50m, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
+
+    ax.plot(df['lon'], df['lat'], color='red', marker='o', transform=crs_plt,
+            zorder=z_ord['track'])
+
+    ax.set_extent(plt_extent, crs=crs_plt) # [x0, x1, y0, y1]
+
+    plt.title('NHC Best Track {}-{}'.format(year, storm_name), loc='right', fontsize=12)
+
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    # Try to cut down on whitespace surrounding the actual plot
+    plt.subplots_adjust(left=0, bottom=0.05, right=1, top=0.95, wspace=0, hspace=0)
+
+    if (save):
+        if (outpath is not None):
+            fname = 'BestTrackPlot.png'
+            path = join(outpath, fname)
+            plt.savefig(path, dpi=600)
+        else:
+            raise ValueError('Error: Outpath cannot be None')
+    if (show):
+        plt.show()
+    plt.close('all')
+    print('--- Track plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
+
+
+
 def plot_raw_track(shp_path, storm_name, year, extent=None, show=True, save=False, outpath=None):
     """
 
     extent: [ymin, ymax, xmin, xmax] aka [min_lat, max_lat, min_lon, max_lon]
     """
-
+    t_start = time.time()
     z_ord = {'base': 0,
              'land': 1,
              'states': 2,
@@ -418,7 +491,7 @@ def plot_raw_track(shp_path, storm_name, year, extent=None, show=True, save=Fals
     if (show):
         plt.show()
     plt.close('all')
-
+    print('--- Track plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
 
 
 
@@ -436,7 +509,8 @@ def main():
     ############################################################################
     ############################################################################
 
-    interp_freq = '10T'
+    interp_freq = '1T'  # 1-minute interpolation
+    # interp_freq = '10T'  # 10-minute interpolation
     write = False
     prnt = False
     pp = True
@@ -445,23 +519,25 @@ def main():
     pp_meta(meta)
 
     df = shp_to_df(shp_path)
-    df = interp_df(df, interp_freq)
-
-    if (prnt):
-        print(df)
-
-    if (write):
-        df_to_csv(df, interp_dict[interp_freq])
-
-    if (pp):
-        pp_df(df)
+    # df = interp_df(df, interp_freq)
+    #
+    # if (prnt):
+    #     print(df)
+    #
+    # if (write):
+    #     df_to_csv(df, interp_dict[interp_freq])
+    #
+    # if (pp):
+    #     pp_df(df)
+    #
+    # print('')
 
     ############################################################################
     ####################### Plotting Defs & Func Calls #########################
     ############################################################################
-
-    # extent = [5.935, 40.031, -88.626, -40.285]
+    extent = [5.935, 40.031, -88.626, -40.285]
     # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
+    plot_track_from_df(df, meta['storm_name'], meta['year'], extent=extent, show=True, save=False, outpath=None)
 
 
 
