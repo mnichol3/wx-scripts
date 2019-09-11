@@ -15,7 +15,13 @@ plot_comms = {'save': False,
 #               'show': False,
 #               'outpath': outpath}
 
-inf_data = read_file_abi(inf_file)
+base_path = '/media/mnichol3/tsb1/data/abi/dorian/inf'
+start = '20190904-1200'
+end = '20190904-1210'
+fnames = get_fnames_from_dir('/media/mnichol3/tsb1/data/abi/dorian/inf', start, end)
+for f in fnames:
+    print(f)
+# inf_data = read_file_abi(inf_file)
 # plot_mercator(inf_data, plot_comms)
 
 # for key, val in inf_data.items():

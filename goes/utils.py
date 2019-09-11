@@ -112,9 +112,9 @@ def get_fnames_from_dir(base_path, start=None, end=None):
         for f in listdir(base_path):
             scanttime_match = re.search(scantime_re, f)
             if (scanttime_match):
-                scantime = prod_match.group(1)
+                scantime = scanttime_match.group(1)
                 scan_dt = datetime.strptime(scantime, '%Y%j%H%M')
-                if ((isfile(join(base_path, f))) and (_scantime_in_range(start_dt, end_dt, scan_dt)):
+                if ((isfile(join(base_path, f))) and (_scantime_in_range(start_dt, end_dt, scan_dt))):
                     fnames.append(f)
             else:
                 raise IOError('Unable to parse ABI scan time from filename')
@@ -535,8 +535,15 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
 
     """
     t_start = time.time()
-    z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
-             'map':8, 'grid':9, 'top': 10}
+    z_ord = {'bottom': 1,
+             'sat': 2,
+             'sat_vis': 2,
+             'sat_inf': 3,
+             'land': 6,
+             'states':7,
+             'counties':8,
+             'grid':9,
+             'top': 10}
 
     ###########################################################################
     #################### Validate the plot_comms parameter ####################
@@ -622,10 +629,15 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
         zorder=z_ord['bottom']
     )
 
-    states = NaturalEarthFeature(category='cultural', scale='10m', facecolor='none',
-                             name='admin_1_states_provinces_shp')
+    # land_10m = cfeature.NaturalEarthFeature('physical', 'land', '50m', facecolor='none')
+    states_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+                                              scale='10m', facecolor='none')
+    countries_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+                                                 scale='10m', facecolor='none')
 
-    ax.add_feature(states, linewidth=.8, edgecolor='black', zorder=z_ord['map'])
+    # ax.add_feature(land_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
+    ax.add_feature(countries_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['countries'])
+    ax.add_feature(states_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
 
     # cmap hsv looks the coolest
     if (band == 11 or band == 13):
@@ -707,7 +719,7 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
 
 
 
-def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
+def plot_mercator_iter(base_path, fnames, plot_comms, ax_extent):
     """
     Plot the abi imagery on a lambert-conformal projection map, including GLM
     Flash Extent Density (FED) if given. Similar to plot_mercator(), except
@@ -715,8 +727,10 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
 
     Parameters
     ------------
-    sat_data : dict
-        Dictionary of data & metadata from GOES-16 ABI file
+    base_path : str
+        Absolute path of the directory holding the ABI files to open and plot
+    fnames : list of str
+        list of ABI filenames to plot
     plot_comms : dict
         Dictionary containing commands on whether or not to display the plot, save
         it, and if to save it where to save it to.
@@ -756,8 +770,15 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
 
     """
     t_start = time.time()
-    z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
-             'map':8, 'grid':9, 'top': 10}
+    z_ord = {'bottom': 1,
+             'sat': 2,
+             'sat_vis': 2,
+             'sat_inf': 3,
+             'land': 6,
+             'states':7,
+             'counties':8,
+             'grid':9,
+             'top': 10}
 
     ###########################################################################
     #################### Validate the plot_comms parameter ####################
@@ -776,21 +797,10 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
         raise ValueError("Plot 'save' and 'show' flags are both False. Halting execution as it will accomplish nothing")
 
     ###########################################################################
-    ########## Process the satellite data in preparation for plotting #########
+    ########################## Create the basemap #############################
     ###########################################################################
-    scan_date = sat_data['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
-    band = sat_data['band_id']
-    print('Plotting satellite image Band {} {}z'.format(band, scan_date))
-
     # Define a single PlateCarree projection object to reuse
     crs_plt = ccrs.PlateCarree()    # DONT USE GLOBE ARG
-
-    if (ax_extent is not None):
-        axis_extent = ax_extent
-    else:
-        # min lon, max lon, min lat, max lat
-        axis_extent = [sat_data['x_min'], sat_data['x_max'],
-                       sat_data['y_min'], sat_data['y_max']]
 
     # Define globe object
     globe = ccrs.Globe(semimajor_axis=sat_data['semimajor_ax'],
@@ -803,18 +813,6 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
                                   false_easting=0, false_northing=0, globe=globe,
                                   sweep_axis=sat_data['sat_sweep'])
 
-    # Transform the min x, min y, max x, & max y points from scan radians to
-    # decimal degree lat & lon in PlateCarree projection
-    trans_pts = crs_geos.transform_points(crs_plt, np.array([sat_data['x_min'], sat_data['x_max']]),
-                                          np.array([sat_data['y_min'], sat_data['y_max']]))
-
-    # Create a tuple of the points defining the extent of the satellite image
-    proj_extent = (min(trans_pts[0][0], trans_pts[1][0]),
-                   max(trans_pts[0][0], trans_pts[1][0]),
-                   min(trans_pts[0][1], trans_pts[1][1]),
-                   max(trans_pts[0][1], trans_pts[1][1]))
-
-    # Create the figure & subplot
     fig_h = 8
     fig_w = 8
 
@@ -822,16 +820,7 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
 
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
 
-    # Format date for title, make it more readable
-    scan_date_time = scan_date.split('-')
-    year = scan_date_time[0][:4]
-    month = scan_date_time[0][4:6]
-    day = scan_date_time[0][-2:]
-
-    plt.title('GOES-16 Band {} {}-{}-{} {}z'.format(band, year, month, day, scan_date_time[1]),
-              fontsize=12, loc='left')
-
-    ax.set_extent(axis_extent)
+    ax.set_extent(ax_extent)
 
     # Set entire plot background black
     ax.imshow(
@@ -843,40 +832,14 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
         zorder=z_ord['bottom']
     )
 
-    states = NaturalEarthFeature(category='cultural', scale='10m', facecolor='none',
-                             name='admin_1_states_provinces_shp')
+    states_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+                                              scale='10m', facecolor='none')
+    countries_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+                                                 scale='10m', facecolor='none')
 
-    ax.add_feature(states, linewidth=.8, edgecolor='black', zorder=z_ord['map'])
+    ax.add_feature(countries_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['countries'])
+    ax.add_feature(states_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
 
-    # cmap hsv looks the coolest
-    if (band == 11 or band == 13):
-        # Infrared bands
-        color = cm.binary
-        v_max = 50   # Deg C
-        v_min = -90  # Deg C
-        data = _k_2_c(sat_data['data'])     # Convert data from K to C
-        cbar_label = 'Temp (deg C)'
-    else:
-        # Non-infrared bands (most of the time will be visual)
-        color = cm.gray
-        data = sat_data['data']
-        cbar_label = 'Radiance ({})'.format(sat_data['data_units'])
-
-    ###########################################################################
-    ######################## Plot the satellite imagery #######################
-    ###########################################################################
-    img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
-                    vmin=v_min, vmax=v_max, transform=crs_geos, zorder=z_ord['sat'])
-
-    ###########################################################################
-    ######################### Plot GLM FED, if passed #########################
-    ###########################################################################
-    if (glm_data is not None):
-        raise NotImplementedError('GLM FED plotting not yet implemented')
-
-    ###########################################################################
-    ########################## Adjust map grid ticks ##########################
-    ###########################################################################
     # Set lat & lon grid tick marks
     lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
     lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
@@ -912,19 +875,79 @@ def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
     # Adjust surrounding whitespace
     ax.set_aspect('auto')
     plt.subplots_adjust(left=0.08, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
-    # ax.set_aspect('auto')
 
     ###########################################################################
-    ########################## Save and/or show plot ##########################
+    ########################### Begin main loop ###############################
     ###########################################################################
-    if (plot_comms['save']):
-        plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
-        print('     Saving figure as {}'.format(plt_fname))
-        fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
-    if (plot_comms['show']):
-        plt.show()
-    plt.close('all')
-    print('--- Plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
+
+    for f in fnames:
+        curr_file = join(base_path, f)
+        sat_data = read_file_abi(curr_file)
+
+        scan_date = sat_data['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
+        band = sat_data['band_id']
+        print('Plotting satellite image Band {} {}z'.format(band, scan_date))
+
+        # Transform the min x, min y, max x, & max y points from scan radians to
+        # decimal degree lat & lon in PlateCarree projection
+        trans_pts = crs_geos.transform_points(crs_plt, np.array([sat_data['x_min'],
+                        sat_data['x_max']]), np.array([sat_data['y_min'], sat_data['y_max']]))
+
+        # Create a tuple of the points defining the extent of the satellite image
+        proj_extent = (min(trans_pts[0][0], trans_pts[1][0]),
+                       max(trans_pts[0][0], trans_pts[1][0]),
+                       min(trans_pts[0][1], trans_pts[1][1]),
+                       max(trans_pts[0][1], trans_pts[1][1]))
+
+        # Format date for title, make it more readable
+        scan_date_time = scan_date.split('-')
+        year = scan_date_time[0][:4]
+        month = scan_date_time[0][4:6]
+        day = scan_date_time[0][-2:]
+
+        plt.title('GOES-16 Band {} {}-{}-{} {}z'.format(band, year, month, day, scan_date_time[1]),
+                  fontsize=12, loc='left')
+
+        # cmap hsv looks the coolest
+        if (band == 11 or band == 13):
+            # Infrared bands
+            color = cm.binary
+            v_max = 50   # Deg C
+            v_min = -90  # Deg C
+            data = _k_2_c(sat_data['data'])     # Convert data from K to C
+            cbar_label = 'Temp (deg C)'
+        else:
+            # Non-infrared bands (most of the time will be visual)
+            raise NotImplementedError('Visible imagery plotting not yet implemented')
+            color = cm.gray
+            data = sat_data['data']     # KEEP!!!!!!
+            v_max = 0
+            v_min = 0
+            cbar_label = 'Radiance ({})'.format(sat_data['data_units'])
+
+        ###########################################################################
+        ######################## Plot the satellite imagery #######################
+        ###########################################################################
+        img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
+                        vmin=v_min, vmax=v_max, transform=crs_geos, zorder=z_ord['sat'])
+
+        ###########################################################################
+        ######################### Plot GLM FED, if passed #########################
+        ###########################################################################
+        if (glm_data is not None):
+            raise NotImplementedError('GLM FED plotting not yet implemented')
+
+        ###########################################################################
+        ########################## Save and/or show plot ##########################
+        ###########################################################################
+        if (plot_comms['save']):
+            plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
+            print('     Saving figure as {}'.format(plt_fname))
+            fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
+        if (plot_comms['show']):
+            plt.show()
+        plt.close('all')
+        print('--- Plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
 
 
 
