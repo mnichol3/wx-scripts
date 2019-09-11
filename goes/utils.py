@@ -565,14 +565,20 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
                    max(trans_pts[0][1], trans_pts[1][1]))
 
     # Create the figure & subplot
-    fig_h = 10
-    fig_w = 10
+    fig_h = 8
+    fig_w = 8
 
     fig = plt.figure(figsize=(fig_w, fig_h))
 
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
 
-    plt.title('GOES-16 Band {} {}z'.format(band, scan_date),
+    # Format date for title, make it more readable
+    scan_date_time = scan_date.split('-')
+    year = scan_date_time[0][:4]
+    month = scan_date_time[0][4:6]
+    day = scan_date_time[0][-2:]
+
+    plt.title('GOES-16 Band {} {}-{}-{} {}z'.format(band, year, month, day, scan_date_time[1]),
               fontsize=12, loc='left')
 
     ax.set_extent(axis_extent)
@@ -637,11 +643,13 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     plt.setp(cbar.ax.yaxis.get_ticklabels(), fontsize=10)
 
     cbar.set_label(cbar_label, fontsize = 10)
-    ax.set_aspect('auto')
+
     # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
 
     # Adjust surrounding whitespace
-    # plt.subplots_adjust(left=0, bottom=0.05, right=1, top=0.95, wspace=0, hspace=0)
+    ax.set_aspect('auto')
+    plt.subplots_adjust(left=0.08, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
+    # ax.set_aspect('auto')
 
     if (plot_comms['save']):
         plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
