@@ -73,14 +73,22 @@ def trim_header(abs_path):
 
 
 
-def get_fnames_from_dir(base_path):
+def get_fnames_from_dir(base_path, start=None, end=None):
     """
-    Get a list of the imagery files located in the base_path directory
+    Get a list of the imagery files located in the base_path directory. If 'start'
+    and 'end' are given, the resulting filenames will be within the timespan
+    defined by the parameters
 
     Parameters
     ----------
     base_path : str
         Absolute path of the directory holding the imagery files
+    start : str, optional
+        Start date & time of the desired time interval
+        Format: YYYYMMDD-HHMM (in UTC)
+    end : str, optional
+        end date & time of the desired time interval
+        Format: YYYYMMDD-HHMM (in UTC)
 
     Returns
     -------
@@ -92,8 +100,26 @@ def get_fnames_from_dir(base_path):
     > os.listdir
     > os.path.isfile
     > os.path.join
+    > datetime
+    > re
     """
-    fnames = [f for f in listdir(base_path) if isfile(join(base_path, f))]
+    if ((start is not None) and (end is not None)):
+        fnames = []
+        scantime_re = r'_s(\d{11})\d{3}_'
+        start_dt = datetime.strptime(start, '%Y%m%d-%H%M')
+        end_dt = datetime.strptime(end, '%Y%m%d-%H%M')
+
+        for f in listdir(base_path):
+            scanttime_match = re.search(scantime_re, f)
+            if (scanttime_match):
+                scantime = prod_match.group(1)
+                scan_dt = datetime.strptime(scantime, '%Y%j%H%M')
+                if ((isfile(join(base_path, f))) and (_valid_scantime(start_dt, end_dt, scan_dt)):
+                    fnames.append(f)
+            else:
+                raise IOError('Unable to parse ABI scan time from filename')
+    else:
+        fnames = [f for f in listdir(base_path) if isfile(join(base_path, f))]
 
     return fnames
 
@@ -463,9 +489,8 @@ def plot_geos(data_dict):
 
 def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     """
-    Plot the GOES-16 data on a lambert-conformal projection map. Includes ABI
-    imagery, GLM flash data, 100km, 200km, & 300km range rings, and red "+" at
-    the center point
+    Plot the abi imagery on a lambert-conformal projection map, including GLM
+    Flash Extent Density (FED) if given
 
     Parameters
     ------------
@@ -513,7 +538,10 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
              'map':8, 'grid':9, 'top': 10}
 
+    ###########################################################################
     #################### Validate the plot_comms parameter ####################
+    ###########################################################################
+
     if (plot_comms['save']):
         if ((plot_comms['outpath'] is None) or (plot_comms['outpath'] == '')):
             raise ValueError("Must provide outpath value if 'save' is True")
@@ -526,8 +554,9 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     if (not plot_comms['save'] and not plot_comms['show']):
         raise ValueError("Plot 'save' and 'show' flags are both False. Halting execution as it will accomplish nothing")
 
-
+    ###########################################################################
     ########## Process the satellite data in preparation for plotting #########
+    ###########################################################################
     scan_date = sat_data['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
     band = sat_data['band_id']
     print('Plotting satellite image Band {} {}z'.format(band, scan_date))
@@ -612,14 +641,21 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
         data = sat_data['data']
         cbar_label = 'Radiance ({})'.format(sat_data['data_units'])
 
+    ###########################################################################
     ######################## Plot the satellite imagery #######################
+    ###########################################################################
     img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
                     vmin=v_min, vmax=v_max, transform=crs_geos, zorder=z_ord['sat'])
 
+    ###########################################################################
     ######################### Plot GLM FED, if passed #########################
+    ###########################################################################
     if (glm_data is not None):
         raise NotImplementedError('GLM FED plotting not yet implemented')
 
+    ###########################################################################
+    ########################## Adjust map grid ticks ##########################
+    ###########################################################################
     # Set lat & lon grid tick marks
     lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
     lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
@@ -637,6 +673,9 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     gl.xlabel_style = {'color': 'red'}
     gl.ylabel_style = {'color': 'red'}
 
+    ###########################################################################
+    ########################## Create & set colorbar ##########################
+    ###########################################################################
     cbar = _make_colorbar(ax, img, orientation='horizontal')
 
     # Increase font size of colorbar tick labels
@@ -644,6 +683,9 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
 
     cbar.set_label(cbar_label, fontsize = 10)
 
+    ###########################################################################
+    ################## Aspect ratio & Whitespace adjustments ##################
+    ###########################################################################
     # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
 
     # Adjust surrounding whitespace
@@ -651,6 +693,230 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     plt.subplots_adjust(left=0.08, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
     # ax.set_aspect('auto')
 
+    ###########################################################################
+    ########################## Save and/or show plot ##########################
+    ###########################################################################
+    if (plot_comms['save']):
+        plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
+        print('     Saving figure as {}'.format(plt_fname))
+        fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
+    if (plot_comms['show']):
+        plt.show()
+    plt.close('all')
+    print('--- Plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
+
+
+
+def plot_mercator_iter(sat_data, plot_comms, glm_data=None, ax_extent=None):
+    """
+    Plot the abi imagery on a lambert-conformal projection map, including GLM
+    Flash Extent Density (FED) if given. Similar to plot_mercator(), except
+    re-uses the basemap for faster execution
+
+    Parameters
+    ------------
+    sat_data : dict
+        Dictionary of data & metadata from GOES-16 ABI file
+    plot_comms : dict
+        Dictionary containing commands on whether or not to display the plot, save
+        it, and if to save it where to save it to.
+        Keys: 'save', 'show', 'outpath'
+    glm_data: dict, optional
+        Dictionary of data & metadata from GOES-16 GLM file
+        Currently only supports Flash Extent Density (FED) data
+    ax_extent: list, optional
+        Geographic extent of the plot.
+        Format: [min lon, max lon, min lat, max lat]
+
+
+
+    Returns
+    ------------
+    A plot of the ABI data on a geostationary-projection map
+
+    Dependencies
+    ------------
+    > numpy
+    > cartopy.crs
+    > matplotlib
+    > pyplot
+    > matplotlib.ticker
+    > matplotlib.colors
+    > mpl_toolkits.axes_grid1.make_axes_locatable
+    > cartopy.mpl.gridliner.LONGITUDE_FORMATTER
+    > cartopy.mpl.gridliner.LATITUDE_FORMATTER
+    > matplotlib.cm
+    > cartopy.feature.NaturalEarthFeature
+    > proj_utils.scan_to_geod
+
+    Notes
+    -----
+    - Uses imshow(), preferred over plot_mercator() for that reason
+    - x & y scan_to_geod conversion handled in file reading func
+
+    """
+    t_start = time.time()
+    z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
+             'map':8, 'grid':9, 'top': 10}
+
+    ###########################################################################
+    #################### Validate the plot_comms parameter ####################
+    ###########################################################################
+
+    if (plot_comms['save']):
+        if ((plot_comms['outpath'] is None) or (plot_comms['outpath'] == '')):
+            raise ValueError("Must provide outpath value if 'save' is True")
+
+    valid_keys = ['outpath', 'save', 'show']
+    true_keys = list(plot_comms.keys())
+    true_keys.sort()
+    if (not true_keys == valid_keys):
+        raise ValueError('Invalid plot_comm parameter')
+    if (not plot_comms['save'] and not plot_comms['show']):
+        raise ValueError("Plot 'save' and 'show' flags are both False. Halting execution as it will accomplish nothing")
+
+    ###########################################################################
+    ########## Process the satellite data in preparation for plotting #########
+    ###########################################################################
+    scan_date = sat_data['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
+    band = sat_data['band_id']
+    print('Plotting satellite image Band {} {}z'.format(band, scan_date))
+
+    # Define a single PlateCarree projection object to reuse
+    crs_plt = ccrs.PlateCarree()    # DONT USE GLOBE ARG
+
+    if (ax_extent is not None):
+        axis_extent = ax_extent
+    else:
+        # min lon, max lon, min lat, max lat
+        axis_extent = [sat_data['x_min'], sat_data['x_max'],
+                       sat_data['y_min'], sat_data['y_max']]
+
+    # Define globe object
+    globe = ccrs.Globe(semimajor_axis=sat_data['semimajor_ax'],
+                       semiminor_axis=sat_data['semiminor_ax'],
+                       flattening=None, inverse_flattening=sat_data['inverse_flattening'])
+
+    # Define geostationary projection used for conveting to Mercator
+    crs_geos = ccrs.Geostationary(central_longitude=sat_data['sat_lon'],
+                                  satellite_height=sat_data['sat_height'],
+                                  false_easting=0, false_northing=0, globe=globe,
+                                  sweep_axis=sat_data['sat_sweep'])
+
+    # Transform the min x, min y, max x, & max y points from scan radians to
+    # decimal degree lat & lon in PlateCarree projection
+    trans_pts = crs_geos.transform_points(crs_plt, np.array([sat_data['x_min'], sat_data['x_max']]),
+                                          np.array([sat_data['y_min'], sat_data['y_max']]))
+
+    # Create a tuple of the points defining the extent of the satellite image
+    proj_extent = (min(trans_pts[0][0], trans_pts[1][0]),
+                   max(trans_pts[0][0], trans_pts[1][0]),
+                   min(trans_pts[0][1], trans_pts[1][1]),
+                   max(trans_pts[0][1], trans_pts[1][1]))
+
+    # Create the figure & subplot
+    fig_h = 8
+    fig_w = 8
+
+    fig = plt.figure(figsize=(fig_w, fig_h))
+
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
+
+    # Format date for title, make it more readable
+    scan_date_time = scan_date.split('-')
+    year = scan_date_time[0][:4]
+    month = scan_date_time[0][4:6]
+    day = scan_date_time[0][-2:]
+
+    plt.title('GOES-16 Band {} {}-{}-{} {}z'.format(band, year, month, day, scan_date_time[1]),
+              fontsize=12, loc='left')
+
+    ax.set_extent(axis_extent)
+
+    # Set entire plot background black
+    ax.imshow(
+        np.tile(
+            np.array(
+                [[[0, 0, 0]]], dtype=np.uint8),
+            [2, 2, 1]),
+        origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180],
+        zorder=z_ord['bottom']
+    )
+
+    states = NaturalEarthFeature(category='cultural', scale='10m', facecolor='none',
+                             name='admin_1_states_provinces_shp')
+
+    ax.add_feature(states, linewidth=.8, edgecolor='black', zorder=z_ord['map'])
+
+    # cmap hsv looks the coolest
+    if (band == 11 or band == 13):
+        # Infrared bands
+        color = cm.binary
+        v_max = 50   # Deg C
+        v_min = -90  # Deg C
+        data = _k_2_c(sat_data['data'])     # Convert data from K to C
+        cbar_label = 'Temp (deg C)'
+    else:
+        # Non-infrared bands (most of the time will be visual)
+        color = cm.gray
+        data = sat_data['data']
+        cbar_label = 'Radiance ({})'.format(sat_data['data_units'])
+
+    ###########################################################################
+    ######################## Plot the satellite imagery #######################
+    ###########################################################################
+    img = ax.imshow(data, cmap=color, extent=proj_extent, origin='upper',
+                    vmin=v_min, vmax=v_max, transform=crs_geos, zorder=z_ord['sat'])
+
+    ###########################################################################
+    ######################### Plot GLM FED, if passed #########################
+    ###########################################################################
+    if (glm_data is not None):
+        raise NotImplementedError('GLM FED plotting not yet implemented')
+
+    ###########################################################################
+    ########################## Adjust map grid ticks ##########################
+    ###########################################################################
+    # Set lat & lon grid tick marks
+    lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
+    lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
+
+    gl = ax.gridlines(crs=crs_plt, linewidth=1, color='gray',
+                      alpha=0.5, linestyle='--', draw_labels=True,
+                      zorder=z_ord['grid'])
+
+    gl.xlabels_top = False
+    gl.ylabels_right=False
+    gl.xlocator = mticker.FixedLocator(lon_ticks)
+    gl.ylocator = mticker.FixedLocator(lat_ticks)
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'red'}
+    gl.ylabel_style = {'color': 'red'}
+
+    ###########################################################################
+    ########################## Create & set colorbar ##########################
+    ###########################################################################
+    cbar = _make_colorbar(ax, img, orientation='horizontal')
+
+    # Increase font size of colorbar tick labels
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), fontsize=10)
+
+    cbar.set_label(cbar_label, fontsize = 10)
+
+    ###########################################################################
+    ################## Aspect ratio & Whitespace adjustments ##################
+    ###########################################################################
+    # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
+
+    # Adjust surrounding whitespace
+    ax.set_aspect('auto')
+    plt.subplots_adjust(left=0.08, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
+    # ax.set_aspect('auto')
+
+    ###########################################################################
+    ########################## Save and/or show plot ##########################
+    ###########################################################################
     if (plot_comms['save']):
         plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
         print('     Saving figure as {}'.format(plt_fname))
@@ -1114,3 +1380,32 @@ def _make_colorbar(ax, mappable, **kwargs):
     cax = divider.append_axes(loc, '5%', pad='5%', axes_class=mpl.pyplot.Axes)
     cbar = ax.get_figure().colorbar(mappable, cax=cax, orientation=orientation)
     return cbar
+
+
+
+def _valid_scantime(start_dt, end_dt, scan_dt):
+    """
+    Determine if the scan time is between a given start & end time
+
+    Parameters
+    ----------
+    start_dt : datetime object
+        Defines the beginning of the time period
+    end_dt : datetime object
+        Defines the end of the time period
+    scan_dt : datetime object
+        Datetime to check
+
+    Returns
+    -------
+    Bool
+        start_dt <= scan_dt <= end_dt
+
+    """
+    # Validate parameters
+    params = ['start_dt', 'end_dt', 'scan_dt']
+    for idx, param in enumerate([start_dt, end_dt, scan_dt]):
+        if (type(param) != datetime):
+            raise TypeError('{} must be a datetime object'.format(params[idx]))
+
+    return (start_dt <= scan_dt <= end_dt)
