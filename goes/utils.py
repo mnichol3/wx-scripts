@@ -118,8 +118,8 @@ def fname_gen(base_path):
     > os.path.isfile
     > os.path.join
     """
-    for (f in listdir(base_path)):
-        if (isfile(join(base_path, f)):
+    for f in listdir(base_path):
+        if (isfile(join(base_path, f))):
             yield f
 
 
