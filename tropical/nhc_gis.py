@@ -268,7 +268,7 @@ def pp_df(df):
 ################################################################################
 
 
-def interp_df(df):
+def interp_df(df, freq):
     """
     Interpolate the dataframe to 1-minute
 
@@ -276,6 +276,22 @@ def interp_df(df):
     ----------
     df : Pandas Dataframe
         Dataframe to interpolate
+    freq : str
+        Frequency used to calculate the time series used to create new data points.
+        Based on pandas timeseries offset aliases.
+
+        Valid frequency aliases:
+            'H'        --> Hourly
+            'T', 'min' --> minutely
+            'S',       --> secondly
+            'L', 'ms'  --> Milliseconds
+            'D',       --> calendar day
+            'W'        --> weekly
+
+        Ex: '1T' or 'T' --> 1 minute
+            '10T'       --> 10 minutes
+            '1H' or 'H' --> 1 hour
+            '2D'        --> 2 calendar days
 
     Returns
     -------
@@ -283,6 +299,24 @@ def interp_df(df):
         Dataframe containing interpolated data.
         Column names: ['storm_num', 'lat', 'lon', 'mslp', 'wind', 'ss']
     """
+    valid_freqs = ['H', 'T', 'min', 'S', 'L', 'ms', 'D', 'W']
+
+    # Validate the frequency string
+    if (len(freq) > 1):
+        # If there is a number attached to the frequency alias
+        key = freq[1]
+        val = freq[0]
+
+        try:
+            val = int(val)
+        except ValueError:
+            raise ValueError('Invalid frequency argument')
+
+    # Validate the frequency alias. Works regardless of if a leading number
+    # is attached or not
+    if (not freq[-1] in valid_freqs):
+        raise ValueError('Invalid frequency argument')
+
 
     start_dt = df.index[0]
     start_dt = datetime.datetime.strptime(start_dt, '%m-%d-%Y-%H%M')
@@ -295,13 +329,13 @@ def interp_df(df):
 
     # Calculate the times between start & end that we want to interpolate
     # data for
-    interp_times = pd.date_range(start=start_dt, end=end_dt, freq='min')
+    interp_times = pd.date_range(start=start_dt, end=end_dt, freq=freq)
 
     # Resample the dataframe for 1-min
     # Resampling removes 'name', 'basin', & 'storm_type' columns
     # Resulting columns are: date-time (index), ['storm_num', 'lat', 'lon',
     #                                            'mslp', 'wind', 'ss']
-    df = df.resample('1T').sum()
+    df = df.resample(freq).sum()
 
     # Set 0 values after the first row to NaN to prepare for interpolation
     df[df.iloc[1:] == 0] = np.NaN
@@ -390,19 +424,42 @@ def plot_raw_track(shp_path, storm_name, year, extent=None, show=True, save=Fals
 
 
 def main():
+    # Definitions and whatnot
     shp_path = '/media/mnichol3/tsb1/data/storms/2019-dorian/al052019_initial_best_track/AL052019_pts.shp'
-    # txt_out = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track.txt'
-    txt_out = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp.txt'
+    # txt_out_raw = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track.txt'
+    # txt_out_10min = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_10min.txt'
+    # txt_out_1min = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_1min.txt'
+
+    interp_dict = {'10T': '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_10min.txt',
+                   'T': '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_1min.txt'}
+
+    ############################################################################
+    ############################################################################
+
+    interp_freq = '10T'
+    write = False
+    prnt = False
+    pp = True
 
     meta = get_besttrack_meta(shp_path)
     pp_meta(meta)
 
     df = shp_to_df(shp_path)
-    df = interp_df(df)
-    df_to_csv(df, txt_out)
-    # print(df)
+    df = interp_df(df, interp_freq)
 
-    pp_df(df)
+    if (prnt):
+        print(df)
+
+    if (write):
+        df_to_csv(df, interp_dict[interp_freq])
+
+    if (pp):
+        pp_df(df)
+
+    ############################################################################
+    ####################### Plotting Defs & Func Calls #########################
+    ############################################################################
+
     # extent = [5.935, 40.031, -88.626, -40.285]
     # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
 
