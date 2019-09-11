@@ -114,7 +114,7 @@ def get_fnames_from_dir(base_path, start=None, end=None):
             if (scanttime_match):
                 scantime = prod_match.group(1)
                 scan_dt = datetime.strptime(scantime, '%Y%j%H%M')
-                if ((isfile(join(base_path, f))) and (_valid_scantime(start_dt, end_dt, scan_dt)):
+                if ((isfile(join(base_path, f))) and (_scantime_in_range(start_dt, end_dt, scan_dt)):
                     fnames.append(f)
             else:
                 raise IOError('Unable to parse ABI scan time from filename')
@@ -1383,7 +1383,7 @@ def _make_colorbar(ax, mappable, **kwargs):
 
 
 
-def _valid_scantime(start_dt, end_dt, scan_dt):
+def _scantime_in_range(start_dt, end_dt, scan_dt):
     """
     Determine if the scan time is between a given start & end time
 
