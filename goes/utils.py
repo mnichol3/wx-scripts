@@ -23,6 +23,7 @@ import sys
 import re
 from shapely.geometry.polygon import Polygon
 from shapely.geometry import Point
+import time
 
 from localglmfile import LocalGLMFile
 from proj_utils import geod_to_scan, scan_to_geod
@@ -508,6 +509,7 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     - x & y scan_to_geod conversion handled in file reading func
 
     """
+    t_start = time.time()
     z_ord = {'bottom': 1, 'sat_vis': 2, 'sat_inf': 3, 'sat': 2,
              'map':8, 'grid':9, 'top': 10}
 
@@ -563,7 +565,10 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
                    max(trans_pts[0][1], trans_pts[1][1]))
 
     # Create the figure & subplot
-    fig = plt.figure(figsize=(8, 10))
+    fig_h = 10
+    fig_w = 10
+
+    fig = plt.figure(figsize=(fig_w, fig_h))
 
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
 
@@ -632,11 +637,11 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     plt.setp(cbar.ax.yaxis.get_ticklabels(), fontsize=10)
 
     cbar.set_label(cbar_label, fontsize = 10)
-
+    ax.set_aspect('auto')
     # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
 
     # Adjust surrounding whitespace
-    plt.subplots_adjust(left=0, bottom=0.05, right=1, top=0.95, wspace=0, hspace=0)
+    # plt.subplots_adjust(left=0, bottom=0.05, right=1, top=0.95, wspace=0, hspace=0)
 
     if (plot_comms['save']):
         plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
@@ -645,6 +650,7 @@ def plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None):
     if (plot_comms['show']):
         plt.show()
     plt.close('all')
+    print('--- Plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
 
 
 
@@ -1097,6 +1103,6 @@ def _make_colorbar(ax, mappable, **kwargs):
     elif (orientation == 'horizontal'):
         loc = 'bottom'
 
-    cax = divider.append_axes(loc, '5%', pad='3%', axes_class=mpl.pyplot.Axes)
+    cax = divider.append_axes(loc, '5%', pad='5%', axes_class=mpl.pyplot.Axes)
     cbar = ax.get_figure().colorbar(mappable, cax=cax, orientation=orientation)
     return cbar
