@@ -1,8 +1,8 @@
 """
 Author: Matt Nicholson
 
-This file contains functions to process GIS data provided by the National
-Hurricane Center
+This file contains functions to process hurricane track data provided in the
+National Hurricane Center Best Track GIS data package
 
 Notes
 -----
@@ -75,7 +75,7 @@ def get_track_meta(shp_path):
                                   first_rec.attributes['YEAR'], first_rec.attributes['HHMM'])
 
     first_dt = datetime.datetime.strptime(first_dt, "%m%d%Y-%H%M")
-    first_dt = datetime.datetime.strftime(first_dt, "%m%d%Y-%H:%M")
+    first_dt = datetime.datetime.strftime(first_dt, "%m-%d-%Y-%H:%Mz")
 
     max_ss = 0
     max_wind = 0
@@ -101,14 +101,20 @@ def get_track_meta(shp_path):
                                      rec.attributes['YEAR'], rec.attributes['HHMM'])
 
     last_dt = datetime.datetime.strptime(last_dt, "%m%d%Y-%H%M")
-    last_dt = datetime.datetime.strftime(last_dt, "%m%d%Y-%H:%M")
+    last_dt = datetime.datetime.strftime(last_dt, "%m-%d-%Y-%H:%Mz")
 
-    meta['year'] = rec.attributes['YEAR']
+    year = rec.attributes['YEAR']
+    storm_num = str(storm_num).zfill(2)
+
+    storm_id = '{}{}{}'.format(storm_basin.upper(), storm_num, year)
+
     meta['first_dt'] = first_dt
     meta['last_dt'] = last_dt
+    meta['storm_id'] = storm_id
+    meta['year'] = year
     meta['storm_name'] = storm_name
     meta['storm_basin'] = storm_basin
-    meta['storm_num'] = str(storm_num).zfill(2)
+    meta['storm_num'] = storm_num
     meta['max_ss'] = max_ss
     meta['max_wind'] = max_wind
     meta['num_records'] = num_records
@@ -518,7 +524,7 @@ def main():
     meta = get_track_meta(shp_path)
     pp_meta(meta)
 
-    df = track_shp_to_df(shp_path)
+    # df = track_shp_to_df(shp_path)
     # df = interp_df(df, interp_freq)
     #
     # if (prnt):
@@ -535,9 +541,9 @@ def main():
     ############################################################################
     ####################### Plotting Defs & Func Calls #########################
     ############################################################################
-    extent = [5.935, 40.031, -88.626, -40.285]
-    # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
-    plot_track_from_df(df, meta['storm_name'], meta['year'], extent=extent, show=True, save=False, outpath=None)
+    # extent = [5.935, 40.031, -88.626, -40.285]
+    # # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
+    # plot_track_from_df(df, meta['storm_name'], meta['year'], extent=extent, show=True, save=False, outpath=None)
 
 
 
