@@ -47,7 +47,7 @@ from sys import exit
 
 
 
-def get_besttrack_meta(shp_path):
+def get_track_meta(shp_path):
     """
     Get metadata from the Best Track shapefile
 
@@ -132,7 +132,7 @@ def pp_meta(meta_dict):
 
 
 
-def shp_to_df(shp_path, outpath=None, write=False):
+def track_shp_to_df(shp_path, outpath=None, write=False):
     """
     Read the shapefile into Pandas DataFrame and write it to csv file if desired
 
@@ -204,7 +204,7 @@ def shp_to_df(shp_path, outpath=None, write=False):
 
 
 
-def csv_to_df(abs_path):
+def track_csv_to_df(abs_path):
     """
     Read a best track csv into a Pandas DataFrame
 
@@ -233,7 +233,7 @@ def csv_to_df(abs_path):
 
 
 
-def df_to_csv(df, outpath):
+def track_df_to_csv(df, outpath):
     """
     Write a DataFrame to csv file
 
@@ -269,7 +269,7 @@ def pp_df(df):
 ################################################################################
 
 
-def interp_df(df, freq):
+def interp_track_df(df, freq):
     """
     Interpolate the dataframe to 1-minute
 
@@ -515,10 +515,10 @@ def main():
     prnt = False
     pp = True
 
-    meta = get_besttrack_meta(shp_path)
+    meta = get_track_meta(shp_path)
     pp_meta(meta)
 
-    df = shp_to_df(shp_path)
+    df = track_shp_to_df(shp_path)
     # df = interp_df(df, interp_freq)
     #
     # if (prnt):
