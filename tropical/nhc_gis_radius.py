@@ -6,23 +6,13 @@ National Hurricane Center Best Track GIS data package
 
 Notes
 -----
-* Record data structure: Record(geometry, attritubes)
+Record:
+    Record(MULTIPOLYGON((())), {attributes})
 
-    Ex:
-    Record(POINT (-54.8 51.6), {'STORMNAME': 'DORIAN', 'DTG': 2019090900, 'YEAR': 2019,
-                                'MONTH': '09', 'DAY': 9, 'HHMM': '0000', 'MSLP': 980,
-                                'BASIN': 'al', 'STORMNUM': 5, 'STORMTYPE': 'EX',
-                                'INTENSITY': 50, 'SS': 0, 'LAT': 51, 'LON': -54}, <fields>)
+    Attribute keys:
+        ['RADII', 'STORMID', 'BASIN', 'STORMNUM', 'ADVNUM', 'SYNOPTIME',
+         'TIMEZONE', 'NE', 'SE', 'SW', 'NW']
 
-    record.geometry: POINT (-54.8 51.6)
-    record.attritubes: {'STORMNAME': 'DORIAN', 'DTG': 2019090900, 'YEAR': 2019,
-                                'MONTH': '09', 'DAY': 9, 'HHMM': '0000', 'MSLP': 980,
-                                'BASIN': 'al', 'STORMNUM': 5, 'STORMTYPE': 'EX',
-                                'INTENSITY': 50, 'SS': 0, 'LAT': 51, 'LON': -54}
-
-    record.attributes.keys : ['STORMNAME', 'DTG', 'YEAR', 'MONTH', 'DAY', 'HHMM',
-                              'MSLP', 'BASIN', 'STORMNUM', 'STORMTYPE', 'INTENSITY',
-                              'SS', 'LAT', 'LON']
 """
 import cartopy.io.shapereader as shpreader
 import cartopy.feature as cfeature
@@ -39,10 +29,144 @@ import time
 from sys import exit
 
 
+class NHCRadius(object):
+    """
+    Object to represent an NHC best track radius shapefile record
+    """
+    def __init__(self, date, time, storm_id, radius, ne, se, sw, nw, poly):
+        super(NHCRadius, self).__init__()
+        self.date = date
+        self.time = time
+        self.storm_id = storm_id
+        self.radius = radius
+        self.ne = ne
+        self.se = se
+        self.sw = sw
+        self.nw = nw
+        self.poly = poly
 
-################################################################################
-################################ I/O Functions #################################
-################################################################################
+
+
+    def __repr__(self):
+        return '<NHCRadius object - {} {}-{}z-{}>'.format(self.storm_id, self.date,
+                self.time, self.radius)
+
+
+
+def ingest_gen(shp_path):
+    """
+    Creates a generator for NHCRadius objects created from a shapefile
+
+    Parameters
+    ----------
+    shp_path : str
+        Absolute path, including the filename, of the shapefile to open & read
+
+    Return
+    ------
+    Yields a NHCRadius object
+    """
+    shp_reader = shpreader.Reader(shp_path)
+
+    for rec in shp_reader.records():
+        curr_dt = datetime.datetime.strptime(rec.attributes['SYNOPTIME'], "%Y%m%d%H")
+        curr_date = datetime.datetime.strftime(curr_dt, "%m-%d-%Y")
+        curr_time = datetime.datetime.strftime(curr_dt, "%H:%M")
+        cur_id = rec.attributes['STORMID']
+        curr_rad = rec.attributes['RADII']
+        curr_ne = rec.attributes['NE']
+        curr_se = rec.attributes['SE']
+        curr_sw = rec.attributes['SW']
+        curr_nw = rec.attributes['NW']
+
+        curr_obj = NHCRadius(curr_date, curr_time, cur_id, curr_rad, curr_ne,
+                             curr_se, curr_sw, curr_nw, rec.geometry)
+
+        yield curr_obj
+
+
+
+def ingest_list(shp_path):
+    """
+    Creates & returns a list of NHCRadius objects created from a shapefile
+
+    Parameters
+    ----------
+    shp_path : str
+        Absolute path, including the filename, of the shapefile to open & read
+
+    Return
+    ------
+    radii : list of NHCRadius objects
+    """
+    radii = []
+
+    shp_reader = shpreader.Reader(shp_path)
+
+    for rec in shp_reader.records():
+        curr_dt = datetime.datetime.strptime(rec.attributes['SYNOPTIME'], "%Y%m%d%H")
+        curr_date = datetime.datetime.strftime(curr_dt, "%m-%d-%Y")
+        curr_time = datetime.datetime.strftime(curr_dt, "%H:%M")
+        cur_id = rec.attributes['STORMID']
+        curr_rad = rec.attributes['RADII']
+        curr_ne = rec.attributes['NE']
+        curr_se = rec.attributes['SE']
+        curr_sw = rec.attributes['SW']
+        curr_nw = rec.attributes['NW']
+
+        curr_obj = NHCRadius(curr_date, curr_time, cur_id, curr_rad, curr_ne,
+                             curr_se, curr_sw, curr_nw, rec.geometry)
+
+        radii.append(curr_obj)
+
+    return radii
+
+
+
+def get_rec_df(shp_path, write=False, outpath=None):
+    """
+    Get a pandas dataframe containing shapefile record information
+
+    Parameters
+    ----------
+    shp_path : str
+        Absolute path, including the filename, of the shapefile to open & read
+    """
+    col_names = ['date-time', 'storm_id', 'radii', 'ne', 'se', 'sw', 'nw']
+    data = []
+
+    shp_reader = shpreader.Reader(shp_path)
+
+    for rec in shp_reader.records():
+        curr_dt = datetime.datetime.strptime(rec.attributes['SYNOPTIME'], "%Y%m%d%H")
+        curr_dt = datetime.datetime.strftime(curr_dt, "%m-%d-%Y-%H%M")
+        cur_id = rec.attributes['STORMID']
+        curr_rad = rec.attributes['RADII']
+        curr_ne = rec.attributes['NE']
+        curr_se = rec.attributes['SE']
+        curr_sw = rec.attributes['SW']
+        curr_nw = rec.attributes['NW']
+
+        curr_dict = {'date-time': curr_dt,
+                    'storm_id': cur_id,
+                    'radii': curr_rad,
+                    'ne': curr_ne,
+                    'se': curr_se,
+                    'sw': curr_sw,
+                    'nw': curr_nw
+                    }
+
+        data.append(curr_dict)
+
+    df = pd.DataFrame(data, columns=col_names)
+    df = df.set_index('date-time')
+
+    if (write):
+        if (outpath):
+            df.to_csv(outpath, sep=',', header=col_names)
+        else:
+            raise ValueError("'outpath' parameter cannot be None")
+    return df
 
 
 
@@ -62,7 +186,7 @@ def get_radius_meta(shp_path):
         Dictionary containing storm metadata
         Keys:
             ['first_dt', 'last_dt', 'storm_id, 'storm_basin',
-             'storm_num', num_records', 'num_timesteps']
+             'storm_num', 'max_rads', 'rec_count_by_radii', 'num_records']
     """
     meta = {}
 
@@ -85,10 +209,11 @@ def get_radius_meta(shp_path):
     }
 
     rec_count_by_radii = {34: 0, 50: 0, 64: 0}
+    timesteps = []
 
     for rec in shp_reader.records():
         curr_dt = rec.attributes['SYNOPTIME']
-
+        timesteps.append(curr_dt)
 
         # Update maximum Saffir-Simpson rating if necessary
         curr_rad = rec.attributes['RADII']
@@ -114,6 +239,12 @@ def get_radius_meta(shp_path):
         curr_dt = datetime.datetime.strftime(curr_dt, "%m-%d-%Y-%H:%Mz")
         max_rads[key]['time'] = curr_dt
 
+    num_records = 0
+    for key, val in rec_count_by_radii.items():
+        num_records += val
+
+    num_timesteps = len(list(set(timesteps)))
+
     meta['first_dt'] = first_dt
     meta['last_dt'] = last_dt
     meta['storm_id'] = storm_id
@@ -121,6 +252,8 @@ def get_radius_meta(shp_path):
     meta['storm_num'] = str(storm_num).zfill(2)
     meta['max_rads'] = max_rads
     meta['rec_count_by_radii'] = rec_count_by_radii
+    meta['num_records'] = num_records
+    meta['num_timesteps'] = num_timesteps
 
     return meta
 
@@ -158,6 +291,18 @@ def main():
 
     meta = get_radius_meta(shp_path)
     pp_meta(meta)
+
+    ################# Test/Debug #################
+    # for rec in ingest_gen(shp_path):
+    #     print(rec)
+    #
+    #
+    # radii = ingest_list(shp_path)
+    # for rec in radii:
+    #     print(rec)
+
+    # df = get_rec_df(shp_path)
+    # print(df)
 
 
 
