@@ -1406,8 +1406,9 @@ def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
     ###########################################################################
 
     # Validate the rgb param
-    if (rgb['product'] != 'rgb'):
-        raise ValueError('Invalid RGB imagery parameter')
+    if ((rgb['product'] != 'rgb') or (rgb['band_wavelengths'] != [1.61, 0.86, 0.64])):
+        raise ValueError('Invalid RGB imagery parameter. Product: {}, Wavelengths: {}'.format(
+                            rgb['product'], rgb['band_wavelengths']))
 
     scan_date = rgb['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
     bands = rgb['band_ids']
@@ -1598,8 +1599,10 @@ def _preprocess_day_land_could_rgb(red, green, blue):
     # Check that the correct wavelengths were passed for each color
     if (red['band_wavelength'] != 1.61):
         raise ValueError('Invalid wavelength for Red (Band 5, 1.61 um) imagery')
+
     if (green['band_wavelength' != 0.86]):
         raise ValueError('Invalid wavelength for Green (Band 3, 0.86 um) imagery')
+
     if (blue['band_wavelength' != 0.64]):
         raise ValueError('Invalid wavelength for Blue (Band 2, 0.64 um) imagery')
 
@@ -1637,7 +1640,6 @@ def _preprocess_day_land_could_rgb(red, green, blue):
 
     red['band_wavelengths'] = [red['band_wavelength'], green['band_wavelength'],
                                blue['band_wavelength']]
-
     red['band_ids'] = [red['band_id'], green['band_id'], blue['band_id']]
     red['product'] = 'rgb'
     red['data'] = RGB
