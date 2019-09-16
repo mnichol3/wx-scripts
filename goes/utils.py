@@ -221,7 +221,37 @@ def read_file_abi(abi_file, extent=None):
     Returns:
     ------------
     data_dict : dictionary of str
-        Dictionar of ABI image data & metadata from the netCDF file
+        Dictionary of ABI image data & metadata from the netCDF file
+
+        Keys (str) & value type
+        ------------------------
+            min_data_val: 		<class 'numpy.ma.core.MaskedArray'>
+            max_data_val: 		<class 'numpy.ma.core.MaskedArray'>
+            band_id: 		    <class 'numpy.ma.core.MaskedArray'>
+            band_wavelength:	<class 'str'>
+            semimajor_ax:		<class 'numpy.float64'>
+            semiminor_ax: 		<class 'numpy.float64'>
+            inverse_flattening:	<class 'numpy.float64'>
+            data_units: 		<class 'str'>
+            lat_center: 		<class 'numpy.float32'>
+            lon_center: 		<class 'numpy.float32'>
+            y_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
+            x_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
+            scan_date: 		    <class 'str'>
+            sector: 		    <class 'str'>
+            product: 		    <class 'str'>
+            sat_height: 		<class 'numpy.float64'>
+            sat_lon: 		    <class 'numpy.float64'>
+            sat_lat: 		    <class 'numpy.float64'>
+            lat_lon_extent: 	<class 'dict'>
+            sat_sweep: 		    <class 'str'>
+            data: 			    <class 'numpy.ma.core.MaskedArray'>
+            y_min: 			    <class 'float'>
+            x_min: 			    <class 'float'>
+            y_max: 			    <class 'float'>
+            x_max: 			    <class 'float'>
+
+
     """
     data_dict = {}
     product_re = r'OR_ABI-L\d\w?-(\w{3,5})[CFM]\d?-M\d'
@@ -1290,6 +1320,332 @@ def plot_sammich_mercator(visual, infrared):
     #ax.axis('equal')  # May cause shapefile to extent beyond borders of figure
 
     plt.show()
+
+
+
+def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
+    """
+    Create a plot of the Day/Land/Cloud RGB product.
+
+    Parameters
+    ----------
+    rgb : dict
+        Dictionary of data & metadata for RGB product returned by
+        _preprocess_day_land_could_rgb() (see function documentation for list
+        of keys & value types)
+    plot_comms : dict
+        Dictionary containing commands on whether or not to display the plot, save
+        it, and if to save it where to save it to.
+        Keys: 'save', 'show', 'outpath'
+    ax_extent: list, optional
+        Geographic extent of the plot.
+        Format: [min lon, max lon, min lat, max lat]
+        If None, then the extent of the ABI image is used
+
+
+    Returns
+    -------
+    None, displays or saves a plot
+
+    Dependencies
+    ------------
+    > /goes/utils._preprocess_day_land_could_rgb()
+    > numpy
+    > cartopy.crs
+    > matplotlib
+    > pyplot
+    > matplotlib.ticker
+    > matplotlib.colors
+    > mpl_toolkits.axes_grid1.make_axes_locatable
+    > cartopy.mpl.gridliner.LONGITUDE_FORMATTER
+    > cartopy.mpl.gridliner.LATITUDE_FORMATTER
+    > matplotlib.cm
+    > cartopy.feature.NaturalEarthFeature
+    > proj_utils.scan_to_geod
+
+    Notes
+    -----
+     * Day/Land/Cloud RGB recipe:
+
+        Color       Band (um)         Min-Max Gamma
+        -----      ----------        ---------------
+        Red         1.61              0 - 97.5%  , 1
+        Green       0.86              0 - 108.6% , 1
+        Blue        0.64              0 - 100.0% , 1
+
+        For an in-depth description of the RGB product, see:
+        http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
+    """
+    t_start = time.time()
+    z_ord = {'bottom': 1,
+             'rgb': 2,
+             'land': 6,
+             'states':7,
+             'counties':8,
+             'grid':9,
+             'top': 10}
+
+    ###########################################################################
+    #################### Validate the plot_comms parameter ####################
+    ###########################################################################
+
+    if (plot_comms['save']):
+        if ((plot_comms['outpath'] is None) or (plot_comms['outpath'] == '')):
+            raise ValueError("Must provide outpath value if 'save' is True")
+
+    valid_keys = ['outpath', 'save', 'show']
+    true_keys = list(plot_comms.keys())
+    true_keys.sort()
+    if (not true_keys == valid_keys):
+        raise ValueError('Invalid plot_comm parameter')
+    if (not plot_comms['save'] and not plot_comms['show']):
+        raise ValueError("Plot 'save' and 'show' flags are both False. Halting execution as it will accomplish nothing")
+
+    ###########################################################################
+    ########## Process the satellite data in preparation for plotting #########
+    ###########################################################################
+
+    # Validate the rgb param
+    if (rgb['product'] != 'rgb'):
+        raise ValueError('Invalid RGB imagery parameter')
+
+    scan_date = rgb['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
+    bands = rgb['band_ids']
+    print('Plotting Day/Land/Cloud RGB {}z'.format(scan_date))
+
+    # Define a single PlateCarree projection object to reuse
+    crs_plt = ccrs.PlateCarree()    # DONT USE GLOBE ARG
+
+    if (ax_extent is not None):
+        axis_extent = ax_extent
+    else:
+        # min lon, max lon, min lat, max lat
+        axis_extent = [rgb['x_min'], rgb['x_max'],
+                       rgb['y_min'], rgb['y_max']]
+
+    # Define globe object
+    globe = ccrs.Globe(semimajor_axis=rgb['semimajor_ax'],
+                       semiminor_axis=rgb['semiminor_ax'],
+                       flattening=None, inverse_flattening=rgb['inverse_flattening'])
+
+    # Define geostationary projection used for conveting to Mercator
+    crs_geos = ccrs.Geostationary(central_longitude=rgb['sat_lon'],
+                                  satellite_height=rgb['sat_height'],
+                                  false_easting=0, false_northing=0, globe=globe,
+                                  sweep_axis=rgb['sat_sweep'])
+
+    # Transform the min x, min y, max x, & max y points from scan radians to
+    # decimal degree lat & lon in PlateCarree projection
+    trans_pts = crs_geos.transform_points(crs_plt, np.array([rgb['x_min'], rgb['x_max']]),
+                                                   np.array([rgb['y_min'], rgb['y_max']]))
+
+    # Create a tuple of the points defining the extent of the satellite image
+    proj_extent = (min(trans_pts[0][0], trans_pts[1][0]),
+                   max(trans_pts[0][0], trans_pts[1][0]),
+                   min(trans_pts[0][1], trans_pts[1][1]),
+                   max(trans_pts[0][1], trans_pts[1][1]))
+
+    # Create the figure & subplot
+    fig_h = 8
+    fig_w = 8
+
+    fig = plt.figure(figsize=(fig_w, fig_h))
+
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator(globe=globe))
+
+    # Format date for title, make it more readable
+    scan_date_time = scan_date.split('-')
+    year = scan_date_time[0][:4]
+    month = scan_date_time[0][4:6]
+    day = scan_date_time[0][-2:]
+
+    ax.set_title('GOES-16 Day Land Cloud RGB', fontsize=12, loc='left')
+    ax.set_title('{}-{}-{} {}z'.format(year, month, day, scan_date_time[1]), loc='right')
+
+    # plt.title('GOES-16 Day Land Cloud RGB', fontsize=12, loc='left')
+    # plt.title('{}-{}-{} {}z'.format(year, month, day, scan_date_time[1]))
+
+    ax.set_extent(axis_extent)
+
+    # Set entire plot background black
+    ax.imshow(
+        np.tile(
+            np.array(
+                [[[0, 0, 0]]], dtype=np.uint8),
+            [2, 2, 1]),
+        origin='upper', transform=crs_plt, extent=[-180, 180, -180, 180],
+        zorder=z_ord['bottom']
+    )
+
+    # land_10m = cfeature.NaturalEarthFeature('physical', 'land', '50m', facecolor='none')
+    states_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+                                              scale='10m', facecolor='none')
+    countries_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+                                                 scale='10m', facecolor='none')
+
+    # ax.add_feature(land_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
+    ax.add_feature(countries_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['countries'])
+    ax.add_feature(states_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
+
+
+    ###########################################################################
+    ######################## Plot the satellite imagery #######################
+    ###########################################################################
+    rgb_img = ax.imshow(rgb['data'], extent=proj_extent, origin='upper',
+                        transform=crs_geos, zorder=z_ord['rgb'])
+
+
+    ###########################################################################
+    ########################## Adjust map grid ticks ##########################
+    ###########################################################################
+    # Set lat & lon grid tick marks
+    lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
+    lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
+
+    gl = ax.gridlines(crs=crs_plt, linewidth=1, color='gray',
+                      alpha=0.5, linestyle='--', draw_labels=True,
+                      zorder=z_ord['grid'])
+
+    gl.xlabels_top = False
+    gl.ylabels_right=False
+    gl.xlocator = mticker.FixedLocator(lon_ticks)
+    gl.ylocator = mticker.FixedLocator(lat_ticks)
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'red'}
+    gl.ylabel_style = {'color': 'red'}
+
+    ###########################################################################
+    ################## Aspect ratio & Whitespace adjustments ##################
+    ###########################################################################
+    # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
+
+    # Adjust surrounding whitespace
+    ax.set_aspect('auto')
+    plt.subplots_adjust(left=0.08, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
+    # ax.set_aspect('auto')
+
+    ###########################################################################
+    ########################## Save and/or show plot ##########################
+    ###########################################################################
+    if (plot_comms['save']):
+        plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
+        print('     Saving figure as {}'.format(plt_fname))
+        fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
+    if (plot_comms['show']):
+        plt.show()
+    plt.close('all')
+    print('--- Plotted in {0:.4f} seconds ---'.format(time.time() - t_start))
+
+
+
+def _preprocess_day_land_could_rgb(red, green, blue):
+    """
+    Preprocess the ABI data in order to pass to plot_day_land_could_rgb()
+
+    Parameters
+    ----------
+    red : dict
+        Dictionary of data & metadata from GOES-16 ABI Band 5 1.61 um file
+        produced by read_file_abi()
+    green : dict
+        Dictionary of data & metadata from GOES-16 ABI Band 3 0.86 um file
+        produced by read_file_abi()
+    blue : dict
+        Dictionary of data & metadata from GOES-16 ABI Band 2 0.64 um file
+        produced by read_file_abi()
+
+    Returns
+    -------
+    dictionary
+        Dictionary containing data & metadata for the rgb product. Essentially
+        its the 'red' parameter dict modified to hold RGB data & metadata
+
+        keys & val types
+        -----------------
+        band_ids: 		    list of <class 'numpy.ma.core.MaskedArray'>
+        band_wavelengths:	list of <class 'str'>
+        semimajor_ax:		<class 'numpy.float64'>
+        semiminor_ax: 		<class 'numpy.float64'>
+        inverse_flattening:	<class 'numpy.float64'>
+        lat_center: 		<class 'numpy.float32'>
+        lon_center: 		<class 'numpy.float32'>
+        y_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
+        x_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
+        scan_date: 		    <class 'str'>
+        sector: 		    <class 'str'>
+        sat_height: 		<class 'numpy.float64'>
+        sat_lon: 		    <class 'numpy.float64'>
+        sat_lat: 		    <class 'numpy.float64'>
+        lat_lon_extent: 	<class 'dict'>
+        sat_sweep: 		    <class 'str'>
+        data: 			    <class 'numpy.ma.core.MaskedArray'>
+        y_min: 			    <class 'float'>
+        x_min: 			    <class 'float'>
+        y_max: 			    <class 'float'>
+        x_max: 			    <class 'float'>
+
+
+    Dependencies
+    ------------
+    > /goes/utils.read_file_abi
+    > numpy
+    """
+    ###########################################################################
+    ################### Validate red, green, & blue params ####################
+    ###########################################################################
+
+    # Check that the correct wavelengths were passed for each color
+    if (red['band_wavelength'] != 1.61):
+        raise ValueError('Invalid wavelength for Red (Band 5, 1.61 um) imagery')
+    if (green['band_wavelength' != 0.86]):
+        raise ValueError('Invalid wavelength for Green (Band 3, 0.86 um) imagery')
+    if (blue['band_wavelength' != 0.64]):
+        raise ValueError('Invalid wavelength for Blue (Band 2, 0.64 um) imagery')
+
+    # Check that the imagery sectors all match
+    if not (red['sector'] == green['sector'] == blue['sector']):
+        raise ValueError('Red, Green, & Blue imagery file sectors must match')
+
+    # Check that the red, green, & blue imagery datetimes match
+    # Remove the seconds from the scan datetimes
+    if not (red['scan_date'][:-3] == green['scan_date'][:-3] == blue['scan_date'][:-3]):
+        raise ValueError('Red, Green, & Blue imagery file datetimes must match')
+
+    # Normalize each channel by the appropriate range of values
+    # E.g. R = (R - minimum) / (maximum - minimum)
+    R = (red['data'] - 0) / (97.5 - 0)
+    G = (green['data'] - 0) / (108.6 - 0)
+    B = (blue['data'] - 0) / (100.0 - 0)
+
+    # Apply range limits for each channel. RGB values must be between 0 - 1
+    R = np.clip(R, 0, 1)
+    G = np.clip(G, 0, 1)
+    B = np.clip(B, 0, 1)
+
+    RGB = np.dstack([R, G, B])
+
+    try:
+        del red['min_data_val']
+        del red['max_data_val']
+        del red['band_id']
+        del red['band_wavelength']
+        del red['data']
+        del red['product']
+    except KeyError:
+        print('KeyError encountered when deleting old dict keys')
+
+    red['band_wavelengths'] = [red['band_wavelength'], green['band_wavelength'],
+                               blue['band_wavelength']]
+
+    red['band_ids'] = [red['band_id'], green['band_id'], blue['band_id']]
+    red['product'] = 'rgb'
+    red['data'] = RGB
+
+    return red
+
+
+
 
 
 
