@@ -2,6 +2,7 @@
 __pycache__/
 wtlma/flash_sort/
 wtlma/*.txt
+goes/*.txt
 tropical/*.xml
 tropical/*.txt
 # Don't track these files
