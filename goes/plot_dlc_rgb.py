@@ -16,9 +16,13 @@ f_green = 'OR_ABI-L2-CMIPC-M6C03_G16_s20192591601148_e20192591603521_c2019259160
 f_blue = 'OR_ABI-L2-CMIPC-M6C02_G16_s20192591601148_e20192591603521_c20192591604035.nc'
 f_mcmip = 'OR_ABI-L2-MCMIPC-M6_G16_s20192591626148_e20192591628521_c20192591629067.nc'
 
-plot_comms = {'save': False,
-              'show': True,
-              'outpath': None}
+# plot_comms = {'save': False,
+#               'show': True,
+#               'outpath': None}
+
+plot_comms = {'save': True,
+              'show': False,
+              'outpath': '/home/mnichol3/Coding/wx-scripts/goes'}
 
 red_data = read_file_abi(join(base_path, f_red))
 green_data = read_file_abi(join(base_path, f_green))
@@ -29,4 +33,4 @@ rgb_data = _preprocess_day_land_cloud_rgb(f_path)
 
 pp_keys(rgb_data)
 
-plot_day_land_cloud_rgb(rgb_data, plot_comms)
+plot_day_land_cloud_rgb(rgb_data, plot_comms, ax_extent=[-112, -60, 20, 50])

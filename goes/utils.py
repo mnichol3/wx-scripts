@@ -1453,7 +1453,7 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
 
     # Create the figure & subplot
     fig_h = 8
-    fig_w = 8
+    fig_w = 10
 
     fig = plt.figure(figsize=(fig_w, fig_h))
 
@@ -1465,7 +1465,7 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
     month = scan_date_time[0][4:6]
     day = scan_date_time[0][-2:]
 
-    ax.set_title('GOES-16 Day Land Cloud RGB', fontsize=12, loc='left')
+    ax.set_title('GOES-16 Day Land Cloud RGB', fontsize=12, fontweight='bold', loc='left')
     ax.set_title('{}-{}-{} {}z'.format(year, month, day, scan_date_time[1]), loc='right')
 
     # plt.title('GOES-16 Day Land Cloud RGB', fontsize=12, loc='left')
@@ -1489,12 +1489,17 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
                                               scale='50m', facecolor='none')
         countries = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
                                                      scale='50m', facecolor='none')
+        lon_ticks = [x for x in range(-180, 181) if x % 4 == 0]
+        lat_ticks = [x for x in range(-90, 91) if x % 4 == 0]
     # land_10m = cfeature.NaturalEarthFeature('physical', 'land', '50m', facecolor='none')
     else:
         states = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
                                               scale='10m', facecolor='none')
         countries = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
                                                  scale='10m', facecolor='none')
+
+        lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
+        lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
 
     # ax.add_feature(land_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
     ax.add_feature(countries, linewidth=.8, edgecolor='gray', zorder=z_ord['countries'])
@@ -1512,8 +1517,6 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
     ########################## Adjust map grid ticks ##########################
     ###########################################################################
     # Set lat & lon grid tick marks
-    lon_ticks = [x for x in range(-180, 181) if x % 2 == 0]
-    lat_ticks = [x for x in range(-90, 91) if x % 2 == 0]
 
     gl = ax.gridlines(crs=crs_plt, linewidth=1, color='gray',
                       alpha=0.5, linestyle='--', draw_labels=True,
@@ -1525,8 +1528,8 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
     gl.ylocator = mticker.FixedLocator(lat_ticks)
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
-    gl.xlabel_style = {'color': 'red'}
-    gl.ylabel_style = {'color': 'red'}
+    gl.xlabel_style = {'color': 'red', 'fontsize': 8}
+    gl.ylabel_style = {'color': 'red', 'fontsize': 8}
 
     ###########################################################################
     ################## Aspect ratio & Whitespace adjustments ##################
@@ -1534,15 +1537,15 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
     # plt.tight_layout()    # Throws 'Tight layout not applied' warning, per usual
 
     # Adjust surrounding whitespace
-    ax.set_aspect('auto')
-    plt.subplots_adjust(left=0.08, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
+    ax.set_aspect('equal')
+    plt.subplots_adjust(left=0.04, bottom=0.06, right=0.96, top=0.95, wspace=0.001, hspace=0.001)
     # ax.set_aspect('auto')
 
     ###########################################################################
     ########################## Save and/or show plot ##########################
     ###########################################################################
     if (plot_comms['save']):
-        plt_fname = '{}-{}-{}.png'.format(sat_data['sector'], sat_data['product'], scan_date)
+        plt_fname = 'DayLandCloudRGB-{}-{}.png'.format(rgb['sector'], scan_date)
         print('     Saving figure as {}'.format(plt_fname))
         fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
     if (plot_comms['show']):
