@@ -1579,6 +1579,7 @@ def _preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs):
 
         keys & val types
         -----------------
+        sector -------------->  <class 'str'>
         scan_date ----------->  <class 'str'>
         band_wavelengths ---->  <class 'dict'>
         band_ids ------------>  <class 'list'>
