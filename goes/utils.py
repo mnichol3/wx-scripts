@@ -1718,15 +1718,15 @@ def _preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs):
 
         # Normalize each channel by the appropriate range of values
         # E.g. R = (R - minimum) / (maximum - minimum)
-        R = (R - 0) / (97.5 - 0)
-        G = (G - 0) / (108.6 - 0)
-        B = (B - 0) / (100.0 - 0)
+        R = (R - 0) / (0.975 - 0)
+        G = (G - 0) / (1.086 - 0)
+        B = (B - 0) / (1.0 - 0)
 
         R = np.clip(R, 0, 1)
         G = np.clip(G, 0, 1)
         B = np.clip(B, 0, 1)
 
-        RGB = np.dstack([R, G, B])
+        RGB = np.dstack([R, G, B])  # shape: (1500, 2500, 3)
 
         rgb['data'] = RGB
     else:
