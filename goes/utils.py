@@ -280,8 +280,18 @@ def read_file_abi(abi_file, extent=None):
         data_dict['max_data_val'] = fh.variables['max_radiance_value_of_valid_pixels'][0]
     elif ('CMIP' in prod):
         prod_key = 'CMI'
-        data_dict['min_data_val'] = fh.variables['min_brightness_temperature'][0]
-        data_dict['max_data_val'] = fh.variables['max_brightness_temperature'][0]
+        # Easier to Ask For Permission than forgiveness
+        try:
+            # Channels 01-06 files contain reflectance data
+            data_dict['min_data_val'] = fh.variables['min_reflectance_factor'][0]
+            data_dict['max_data_val'] = fh.variables['max_reflectance_factor'][0]
+        except KeyError:
+            try:
+                # Channels 07-16 contain brightness temperature data
+                data_dict['min_data_val'] = fh.variables['min_brightness_temperature'][0]
+                data_dict['max_data_val'] = fh.variables['max_brightness_temperature'][0]
+            except KeyError:
+                raise KeyError('Unable to extract data values from ABI file')
     else:
         raise ValueError('Invalid ABI product key')
 
@@ -1323,7 +1333,7 @@ def plot_sammich_mercator(visual, infrared):
 
 
 
-def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
+def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
     """
     Create a plot of the Day/Land/Cloud RGB product.
 
@@ -1381,7 +1391,7 @@ def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
              'rgb': 2,
              'land': 6,
              'states':7,
-             'counties':8,
+             'countries':8,
              'grid':9,
              'top': 10}
 
@@ -1404,11 +1414,6 @@ def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
     ###########################################################################
     ########## Process the satellite data in preparation for plotting #########
     ###########################################################################
-
-    # Validate the rgb param
-    if ((rgb['product'] != 'rgb') or (rgb['band_wavelengths'] != [1.61, 0.86, 0.64])):
-        raise ValueError('Invalid RGB imagery parameter. Product: {}, Wavelengths: {}'.format(
-                            rgb['product'], rgb['band_wavelengths']))
 
     scan_date = rgb['scan_date']   # Format: YYYYMMDD-HH:MM:SS (UTC)
     bands = rgb['band_ids']
@@ -1478,15 +1483,22 @@ def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
         zorder=z_ord['bottom']
     )
 
+    # If plotting a CONUS scan, use coarser resolution shapefiles
+    if (rgb['sector'] == 'C'):
+        states = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+                                              scale='50m', facecolor='none')
+        countries = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+                                                     scale='50m', facecolor='none')
     # land_10m = cfeature.NaturalEarthFeature('physical', 'land', '50m', facecolor='none')
-    states_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
+    else:
+        states = cfeature.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces',
                                               scale='10m', facecolor='none')
-    countries_10m = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
+        countries = cfeature.NaturalEarthFeature(category='cultural', name='admin_0_countries',
                                                  scale='10m', facecolor='none')
 
     # ax.add_feature(land_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['land'])
-    ax.add_feature(countries_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['countries'])
-    ax.add_feature(states_10m, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
+    ax.add_feature(countries, linewidth=.8, edgecolor='gray', zorder=z_ord['countries'])
+    ax.add_feature(states, linewidth=.8, edgecolor='gray', zorder=z_ord['states'])
 
 
     ###########################################################################
@@ -1540,7 +1552,191 @@ def plot_day_land_could_rgb(rgb, plot_comms, ax_extent=None):
 
 
 
-def _preprocess_day_land_could_rgb(red, green, blue):
+def _preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs):
+    """
+    Preprocess the ABI data in order to pass to plot_day_land_could_rgb(). It is
+    preferred that a MCMIP file path is passed, as the data array shapes match
+    regardless of wavelength. However, individual filenames can be passed as well.
+
+    Parameters
+    ----------
+    f_path : str
+        Absolute path of a GOES-16 ABI file to be opened & processed.
+    extent : list of floats, optional
+        List of floats used to create a geospatial subset of the ABI image
+        Format: [min_lat, max_lat, min_lon, max_lon]
+
+    **kwargs : str, list of str; optional
+
+    Returns
+    -------
+    dictionary
+        Dictionary containing data & metadata for the rgb product. Essentially
+        its the 'red' parameter dict modified to hold RGB data & metadata
+
+        keys & val types
+        -----------------
+        scan_date ----------->  <class 'str'>
+        band_wavelengths ---->  <class 'dict'>
+        band_ids ------------>  <class 'list'>
+        sat_height ---------->  <class 'numpy.float64'>
+        sat_lon ------------->  <class 'numpy.float64'>
+        sat_sweep ----------->  <class 'str'>
+        semimajor_ax -------->  <class 'numpy.float64'>
+        semiminor_ax -------->  <class 'numpy.float64'>
+        inverse_flattening -->  <class 'numpy.float64'>
+        lat_center ---------->  <class 'numpy.float32'>
+        lon_center ---------->  <class 'numpy.float32'>
+        y_image_bounds ------>  <class 'numpy.ma.core.MaskedArray'>
+        x_image_bounds ------>  <class 'numpy.ma.core.MaskedArray'>
+        lat_lon_extent ------>  <class 'dict'>
+        x_min --------------->  <class 'float'>
+        y_min --------------->  <class 'float'>
+        x_max --------------->  <class 'float'>
+        y_max --------------->  <class 'float'>
+        data ---------------->  <class 'numpy.ma.core.MaskedArray'>
+
+
+    Dependencies
+    ------------
+    > /goes/utils.read_file_abi
+    > numpy
+    > netCDF4.Dataset
+    > datetime.datetime
+    > datetime.timedelta
+
+    Notes
+    -----
+    * Make sure to extract the actual values and not just the the netCDF4._netCDF4.Variable
+      (i.e., use fh.variables['band_wavelength_C05'][:] instead of fh.variables['band_wavelength_C05'])
+    """
+    rgb = {}
+    sector_re = r'OR_ABI-L\d\w?-\w{3,5}([CFM]\d?)-M\d'
+
+    # First case: MCMIP file path is passed
+    if ('MCMIP' in f_path):
+        lat_lon_extent = {}
+
+        # Get the scan sector from the filename
+        sector_match = re.search(sector_re, f_path)
+        if (sector_match):
+            sector = sector_match.group(1)
+            rgb['sector'] = sector
+        else:
+            raise IOError('Unable to parse ABI scan sector from filename')
+
+        # Open and read the file
+        fh = Dataset(f_path, mode='r')
+
+        # Parse & format scan date
+        add_seconds = fh.variables['t'][0]
+        scan_date = datetime(2000, 1, 1, 12) + timedelta(seconds=float(add_seconds))
+        scan_date = datetime.strftime(scan_date, '%Y%m%d-%H:%M')
+        rgb['scan_date'] = scan_date
+
+        # !!! Make sure to extract the actual values and not just the the netCDF4._netCDF4.Variable
+        rgb['band_wavelengths'] = {'C05': "%.2f" % fh.variables['band_wavelength_C05'][:],
+                                   'C03': "%.2f" % fh.variables['band_wavelength_C03'][:],
+                                   'C02': "%.2f" % fh.variables['band_wavelength_C02'][:]
+                                   }
+
+        rgb['band_ids'] = ['C05', 'C03', 'C02']
+
+        # Satellite projection data
+        rgb['sat_height'] = fh.variables['goes_imager_projection'].perspective_point_height
+        rgb['sat_lon'] = fh.variables['goes_imager_projection'].latitude_of_projection_origin
+        rgb['sat_lon'] = fh.variables['goes_imager_projection'].longitude_of_projection_origin
+        rgb['sat_sweep'] = fh.variables['goes_imager_projection'].sweep_angle_axis
+        rgb['semimajor_ax'] = fh.variables['goes_imager_projection'].semi_major_axis
+        rgb['semiminor_ax'] = fh.variables['goes_imager_projection'].semi_minor_axis
+        rgb['inverse_flattening'] = fh.variables['goes_imager_projection'].inverse_flattening
+
+        rgb['lat_center'] = fh.variables['geospatial_lat_lon_extent'].geospatial_lat_center
+        rgb['lon_center'] = fh.variables['geospatial_lat_lon_extent'].geospatial_lon_center
+
+        if (extent is not None):
+
+            # Get the indices of the x & y arrays that define the data subset
+            min_y, max_y, min_x, max_x = subset_grid(extent, fh.variables['x'][:],
+                                                             fh.variables['y'][:])
+
+            # Ensure the min & max values are correct
+            y_min = min(min_y, max_y)
+            y_max = max(min_y, max_y)
+            x_min = min(min_x, max_x)
+            x_max = max(min_x, max_x)
+
+            R = fh.variables['CMI_C05'][y_min : y_max, x_min : x_max]
+            G = fh.variables['CMI_C03'][y_min : y_max, x_min : x_max]
+            B = fh.variables['CMI_C02'][y_min : y_max, x_min : x_max]
+
+            # KEEP!!!!! Determines the plot axis extent
+            lat_lon_extent['n'] = extent[1]
+            lat_lon_extent['s'] = extent[0]
+            lat_lon_extent['e'] = extent[3]
+            lat_lon_extent['w'] = extent[2]
+
+            # Y image bounds in scan radians
+            # X image bounds in scan radians
+            rgb['y_image_bounds'] = [fh.variables['y'][y_min], fh.variables['y'][y_max]]
+            rgb['x_image_bounds'] = [fh.variables['x'][x_min], fh.variables['x'][x_max]]
+
+            y_min, x_min = scan_to_geod(fh.variables['y'][y_min], fh.variables['x'][x_min])
+            y_max, x_max = scan_to_geod(fh.variables['y'][y_max], fh.variables['x'][x_max])
+
+        else:
+            R = fh.variables['CMI_C05'][:]
+            G = fh.variables['CMI_C03'][:]
+            B = fh.variables['CMI_C02'][:]
+
+            lat_lon_extent['n'] = fh.variables['geospatial_lat_lon_extent'].geospatial_northbound_latitude
+            lat_lon_extent['s'] = fh.variables['geospatial_lat_lon_extent'].geospatial_southbound_latitude
+            lat_lon_extent['e'] = fh.variables['geospatial_lat_lon_extent'].geospatial_eastbound_longitude
+            lat_lon_extent['w'] = fh.variables['geospatial_lat_lon_extent'].geospatial_westbound_longitude
+
+            y_bounds = fh.variables['y_image_bounds'][:]
+            x_bounds = fh.variables['x_image_bounds'][:]
+
+            # Format: (North, South)
+            rgb['y_image_bounds'] = y_bounds
+
+            # Format: (west, East)
+            rgb['x_image_bounds'] = x_bounds
+
+            y_min, x_min = scan_to_geod(min(y_bounds), min(x_bounds))
+            y_max, x_max = scan_to_geod(max(y_bounds), max(x_bounds))
+
+        fh.close()
+        fh = None
+
+        rgb['lat_lon_extent'] = lat_lon_extent
+        rgb['x_min'] = x_min
+        rgb['y_min'] = y_min
+        rgb['x_max'] = x_max
+        rgb['y_max'] = y_max
+
+
+        # Normalize each channel by the appropriate range of values
+        # E.g. R = (R - minimum) / (maximum - minimum)
+        R = (R - 0) / (97.5 - 0)
+        G = (G - 0) / (108.6 - 0)
+        B = (B - 0) / (100.0 - 0)
+
+        R = np.clip(R, 0, 1)
+        G = np.clip(G, 0, 1)
+        B = np.clip(B, 0, 1)
+
+        RGB = np.dstack([R, G, B])
+
+        rgb['data'] = RGB
+    else:
+        raise NotImplementedError('Not yet implemented')
+
+    return rgb
+
+
+
+def _preprocess_day_land_could_rgb_2(red, green, blue):
     """
     Preprocess the ABI data in order to pass to plot_day_land_could_rgb()
 
@@ -1596,19 +1792,21 @@ def _preprocess_day_land_could_rgb(red, green, blue):
     ################### Validate red, green, & blue params ####################
     ###########################################################################
 
-    # Check that the correct wavelengths were passed for each color
-    if (red['band_wavelength'] != 1.61):
-        raise ValueError('Invalid wavelength for Red (Band 5, 1.61 um) imagery')
+    # Check that the correct wavelengths were passed for each color.
+    # Wavelength added to dictionary as <class 'str'>
+    if (red['band_wavelength'] != '1.61'):
+        raise ValueError('Invalid wavelength for Red (Band 5, 1.61 um) imagery. Got {} um'.format(red['band_wavelength']))
 
-    if (green['band_wavelength' != 0.86]):
-        raise ValueError('Invalid wavelength for Green (Band 3, 0.86 um) imagery')
+    # Apparently band 3 wavelength is saved to the file as 0.87
+    if ((green['band_wavelength'] != '0.86') and (green['band_wavelength'] != '0.87')):
+        raise ValueError('Invalid wavelength for Green (Band 3, 0.86 um) imagery. Got {} um'.format(green['band_wavelength']))
 
-    if (blue['band_wavelength' != 0.64]):
-        raise ValueError('Invalid wavelength for Blue (Band 2, 0.64 um) imagery')
+    if (blue['band_wavelength'] != '0.64'):
+        raise ValueError('Invalid wavelength for Blue (Band 2, 0.64 um) imagery. Got {} um'.format(blue['band_wavelength']))
 
     # Check that the imagery sectors all match
     if not (red['sector'] == green['sector'] == blue['sector']):
-        raise ValueError('Red, Green, & Blue imagery file sectors must match')
+        raise ValueError('Red ({}), Green ({}), & Blue ({}) imagery file sectors must match'.format(red['sector'], green['sector'], blue['sector']))
 
     # Check that the red, green, & blue imagery datetimes match
     # Remove the seconds from the scan datetimes
@@ -1622,6 +1820,10 @@ def _preprocess_day_land_could_rgb(red, green, blue):
     B = (blue['data'] - 0) / (100.0 - 0)
 
     # Apply range limits for each channel. RGB values must be between 0 - 1
+    print('Red shape: {}'.format(R.shape))
+    print('Green shape: {}'.format(G.shape))
+    print('Blue shape: {}'.format(B.shape))
+
     R = np.clip(R, 0, 1)
     G = np.clip(G, 0, 1)
     B = np.clip(B, 0, 1)
@@ -1645,7 +1847,6 @@ def _preprocess_day_land_could_rgb(red, green, blue):
     red['data'] = RGB
 
     return red
-
 
 
 
