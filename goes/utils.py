@@ -1670,6 +1670,7 @@ def _preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs):
             x_min = min(min_x, max_x)
             x_max = max(min_x, max_x)
 
+            # Retrieve a subset of the R, G, & B values
             R = fh.variables['CMI_C05'][y_min : y_max, x_min : x_max]
             G = fh.variables['CMI_C03'][y_min : y_max, x_min : x_max]
             B = fh.variables['CMI_C02'][y_min : y_max, x_min : x_max]
@@ -1689,6 +1690,7 @@ def _preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs):
             y_max, x_max = scan_to_geod(fh.variables['y'][y_max], fh.variables['x'][x_max])
 
         else:
+            # Retrieve the R, G, & B values
             R = fh.variables['CMI_C05'][:]
             G = fh.variables['CMI_C03'][:]
             B = fh.variables['CMI_C02'][:]
@@ -1737,122 +1739,6 @@ def _preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs):
         raise NotImplementedError('Not yet implemented')
 
     return rgb
-
-
-
-def _preprocess_day_land_could_rgb_2(red, green, blue):
-    """
-    Preprocess the ABI data in order to pass to plot_day_land_could_rgb()
-
-    Parameters
-    ----------
-    red : dict
-        Dictionary of data & metadata from GOES-16 ABI Band 5 1.61 um file
-        produced by read_file_abi()
-    green : dict
-        Dictionary of data & metadata from GOES-16 ABI Band 3 0.86 um file
-        produced by read_file_abi()
-    blue : dict
-        Dictionary of data & metadata from GOES-16 ABI Band 2 0.64 um file
-        produced by read_file_abi()
-
-    Returns
-    -------
-    dictionary
-        Dictionary containing data & metadata for the rgb product. Essentially
-        its the 'red' parameter dict modified to hold RGB data & metadata
-
-        keys & val types
-        -----------------
-        band_ids: 		    list of <class 'numpy.ma.core.MaskedArray'>
-        band_wavelengths:	list of <class 'str'>
-        semimajor_ax:		<class 'numpy.float64'>
-        semiminor_ax: 		<class 'numpy.float64'>
-        inverse_flattening:	<class 'numpy.float64'>
-        lat_center: 		<class 'numpy.float32'>
-        lon_center: 		<class 'numpy.float32'>
-        y_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
-        x_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
-        scan_date: 		    <class 'str'>
-        sector: 		    <class 'str'>
-        sat_height: 		<class 'numpy.float64'>
-        sat_lon: 		    <class 'numpy.float64'>
-        sat_lat: 		    <class 'numpy.float64'>
-        lat_lon_extent: 	<class 'dict'>
-        sat_sweep: 		    <class 'str'>
-        data: 			    <class 'numpy.ma.core.MaskedArray'>
-        y_min: 			    <class 'float'>
-        x_min: 			    <class 'float'>
-        y_max: 			    <class 'float'>
-        x_max: 			    <class 'float'>
-
-
-    Dependencies
-    ------------
-    > /goes/utils.read_file_abi
-    > numpy
-    """
-    ###########################################################################
-    ################### Validate red, green, & blue params ####################
-    ###########################################################################
-
-    # Check that the correct wavelengths were passed for each color.
-    # Wavelength added to dictionary as <class 'str'>
-    if (red['band_wavelength'] != '1.61'):
-        raise ValueError('Invalid wavelength for Red (Band 5, 1.61 um) imagery. Got {} um'.format(red['band_wavelength']))
-
-    # Apparently band 3 wavelength is saved to the file as 0.87
-    if ((green['band_wavelength'] != '0.86') and (green['band_wavelength'] != '0.87')):
-        raise ValueError('Invalid wavelength for Green (Band 3, 0.86 um) imagery. Got {} um'.format(green['band_wavelength']))
-
-    if (blue['band_wavelength'] != '0.64'):
-        raise ValueError('Invalid wavelength for Blue (Band 2, 0.64 um) imagery. Got {} um'.format(blue['band_wavelength']))
-
-    # Check that the imagery sectors all match
-    if not (red['sector'] == green['sector'] == blue['sector']):
-        raise ValueError('Red ({}), Green ({}), & Blue ({}) imagery file sectors must match'.format(red['sector'], green['sector'], blue['sector']))
-
-    # Check that the red, green, & blue imagery datetimes match
-    # Remove the seconds from the scan datetimes
-    if not (red['scan_date'][:-3] == green['scan_date'][:-3] == blue['scan_date'][:-3]):
-        raise ValueError('Red, Green, & Blue imagery file datetimes must match')
-
-    # Normalize each channel by the appropriate range of values
-    # E.g. R = (R - minimum) / (maximum - minimum)
-    R = (red['data'] - 0) / (97.5 - 0)
-    G = (green['data'] - 0) / (108.6 - 0)
-    B = (blue['data'] - 0) / (100.0 - 0)
-
-    # Apply range limits for each channel. RGB values must be between 0 - 1
-    print('Red shape: {}'.format(R.shape))
-    print('Green shape: {}'.format(G.shape))
-    print('Blue shape: {}'.format(B.shape))
-
-    R = np.clip(R, 0, 1)
-    G = np.clip(G, 0, 1)
-    B = np.clip(B, 0, 1)
-
-    RGB = np.dstack([R, G, B])
-
-    try:
-        del red['min_data_val']
-        del red['max_data_val']
-        del red['band_id']
-        del red['band_wavelength']
-        del red['data']
-        del red['product']
-    except KeyError:
-        print('KeyError encountered when deleting old dict keys')
-
-    red['band_wavelengths'] = [red['band_wavelength'], green['band_wavelength'],
-                               blue['band_wavelength']]
-    red['band_ids'] = [red['band_id'], green['band_id'], blue['band_id']]
-    red['product'] = 'rgb'
-    red['data'] = RGB
-
-    return red
-
-
 
 
 
