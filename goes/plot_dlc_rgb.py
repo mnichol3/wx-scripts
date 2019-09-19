@@ -10,8 +10,11 @@ def pp_keys(dict):
         print('{} {}  {}'.format(key, '-->'.rjust(len(max_len_key) - len(key) + 3, '-'), type(val)))
 
 
-base_path = '/media/mnichol3/tsb1/data/abi'
-f_mcmip = 'OR_ABI-L2-MCMIPC-M6_G16_s20192591626148_e20192591628521_c20192591629067.nc'
+# base_path = '/media/mnichol3/tsb1/data/abi'
+# f_mcmip = 'OR_ABI-L2-MCMIPC-M6_G16_s20192591626148_e20192591628521_c20192591629067.nc'
+
+base_path = '/media/mnichol3/tsb1/data/abi/20190918'
+f_mcmip = 'OR_ABI-L2-MCMIPC-M6_G16_s20192611821160_e20192611823533_c20192611824108.nc'
 
 # plot_comms = {'save': False,
 #               'show': True,
@@ -20,6 +23,9 @@ f_mcmip = 'OR_ABI-L2-MCMIPC-M6_G16_s20192591626148_e20192591628521_c201925916290
 plot_comms = {'save': True,
               'show': False,
               'outpath': '/home/mnichol3/Coding/wx-scripts/goes'}
+
+# extent = [-112, -60, 20, 50]
+extent = [-112, -60, 20, 50]
 
 f_path = join(base_path, f_mcmip)
 

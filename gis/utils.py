@@ -1,3 +1,18 @@
+"""
+Author: Matt Nicholson
+
+This file contains functions that perform GIS-like tasks
+
+Functions
+----------
+geodesic_point_buffer
+    Creates a circular buffer around a geodesic point defined by a given lat & lon
+get_quadrant_coords
+    Finds the lat & lon coordinates of the northermost, southernmost, easternmost,
+    and westernmost point along a geodesic point buffer
+
+"""
+
 import pyproj
 from shapely.ops import transform
 from shapely.geometry import Point, LineString
@@ -13,9 +28,9 @@ def geodesic_point_buffer(lat, lon, km):
     Parameters
     ------------
     lat : float
-        Latitude coordinate of the circle's center
+        Latitude coordinate of the circle's center in decimal degrees
     lon : float
-        Longitude coordinate of the circle's center
+        Longitude coordinate of the circle's center in decimal degrees
     km : int
         Radius of the circle, in km
 
@@ -113,6 +128,6 @@ def get_quadrant_coords(buff_obj=None, coords=None, pprint=False):
 
 lat = 20
 lon = -112
-ring = geodesic_point_buffer(lat, lon, 2)
+ring = geodesic_point_buffer(lat, lon, 20)
 
 ring_dict = get_quadrant_coords(buff_obj=ring, pprint=True)

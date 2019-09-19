@@ -1,7 +1,108 @@
 """
 Author: Matt Nicholson
 
-Functions for processing GOES imagery files
+This file contains functions for processing GOES Advanced Baseline Imager (ABI)
+and Geostationary Lightning Mapper (GLM) files.
+
+
+Functions
+---------
+trim_header(abs_path)
+    Removes the header of an AWIPS-compatable GLM file specified by 'abs_path'
+    and converts it to a netCDF
+
+get_fnames_from_dir(base_path, start=None, end=None)
+    Gets a list of files located in the given directory. If 'start' and 'end' are
+    given, the filenames returned will be within the defined time period
+
+fname_gen(base_path)
+    Creates a generator for the filenames in the directory specified by 'base_path'
+
+read_glm_file(abs_path, window=False)
+    Reads a GLM netCDF file specified in the 'abs_path' argument and returns
+    a LocalGLMFile object. IF 'window' is True, 5-minute GLM data will be returned
+    instead of 1-minute
+
+    * Notes
+    --------
+    - 19 Sep 2019
+        Might only work for FED files?
+
+read_abi_file(abi_file, extent=None)
+    Reads a GOES ABI file specified by the absolute path 'abi_file' and returns
+    a dictionary containing data & metadata. If 'extent' is given, a georaphic
+    subset of the imagery data will be taken
+
+georeference(x, y, sat_lon, sat_height, sat_sweep, data=None)
+    Calculates the longitude and latitude coordinates (in decimal degrees)
+    for each imagery pixel given in scan radians
+
+idx_of_nearest(coords, val)
+    Finds the index of the array element that is closest in value to the 'val' argument
+
+create_bbox(lats, lons, point1, point2)
+    Creates a bounding box defined by the coordinates passed in the 'point1' and
+    'point2' tuples
+
+plot_geos(data_dict)
+    Plots GOES ABI imagery in a geostationary projection
+
+plot_mercator(sat_data, plot_comms, glm_data=None, ax_extent=None)
+    Plots GOES ABI imagery in a mercator projection using imshow
+
+plot_mercator_iter(base_path, fnames, plot_comms, ax_extent)
+    Iteratively plots GOES ABI imagery in a mercator projection. Re-uses the
+    base map in order to decrease execution time
+
+    * Notes
+    ---------
+    - 19 Sep 2019
+        WIP
+
+plot_mercator2
+    Plots GOES ABI imagery in a mercator projection using pcolormesh
+
+subset_grid(extent, grid_Xs, grid_Ys)
+    Finds the min x, min y, max y, & max y ABI grid coordinates corresponding
+    to the lat & lon points passed in by 'extent'
+
+plot_sammich_geos(visual, infrared)
+    Plot the visual & infrared "Multi-spectral sandwich" in a geostationary
+    projection
+
+plot_sammich_mercator(visual, infrared)
+    Plot the visual & infrared "Multi-spectral sandwich" in a mercator
+    projection
+
+plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None)
+    Plot the Day Land Cloud RGB product in a mercator projection
+
+_preprocess_day_land_cloud_rgb(f_path, extent=None, **kwargs)
+    Preprocesses the GOES ABI L2 Multi-band Cloud and Moisture Imagery Product
+    (MCMIP) file and constructs the RGB image used in plot_day_land_cloud_rgb()
+
+_rad_to_ref(radiance, channel=2, correct=True)
+    Performs a linear conversion of spectral radiance to reflectance factor
+
+_gamma_corr(ref)
+    Adjusts the reflectance array. Results in a brighter image
+
+_k_2_c(data)
+    Converts the input from degrees Kelvin to degrees Celsius
+
+_find_nearest_idx(array, value)
+    Finds the index of the array element with the value that is closest numerically
+    to the parameter value. Used by subset_grid()
+
+_make_colorbar(ax, mappable, **kwargs)
+    Creates a custom colorbar used in some of the above plotting functions
+    because cartopy geo-axes like to be difficult sometimes
+
+_scantime_in_range(start_dt, end_dt, scan_dt)
+    Determines if the given scan datetime object occurs within the period
+    defined by the 'start_dt' & 'end_dt' datetime objects
+
+
 """
 from os import listdir
 from os.path import isfile, join
