@@ -6,6 +6,7 @@ This file contains files to access & parse High-Density/High-Accuracy Observatio
 """
 import pandas as pd
 from datetime import datetime, timedelta
+from os.path import isfile
 
 class HDOBFile(object):
     """
@@ -94,6 +95,43 @@ class HDOBFile(object):
 
 
 
+def parse_hdob_file(path):
+    """
+    Read an HDOB file and return a HDOBFile object
+
+    Parameters
+    ----------
+    path : str
+        Absolute path or url to the HDOB file to be opened & processed
+
+    Returns
+    -------
+    hdob_file : HDOBFile object
+    """
+    col_names = ["obs_time", "lat", "lon", "static_air_press", "geo_pot_height",
+                 "sfc_press_dval", "t_air", "t_dew", "wind_dir_spd", "wind_peak",
+                 "sfc_wind_peak", "rain_rate", "qc_flags"]
+    file_header = ''
+    obs_data = []
+
+    # Determine if 'path' is a path or url
+    if isfile(path):
+        # open & read local file
+        with open(path, 'r') as fh:
+            for idx, line in enumerate(fh):
+                line = line.rstrip('\n')
+
+                if (idx == 3):
+                    file_header = line
+                elif ((idx > 3) and (idx < 24)):
+                    curr_line = line.split(' ')
+                    curr_line = [x for x in curr_line if x != ' ']
+                    obs_data.append(curr_line)
+    print(obs_data)
+    # elif (isURL):
+
+
+
 def minutes_degrees(coord, kywrd):
     """
     Converts coordinates from decimal minutes to decimal degrees
@@ -129,3 +167,15 @@ def minutes_degrees(coord, kywrd):
     deg = str(deg)[:6]
 
     return deg
+
+
+
+def main():
+    fname = 'AHONT1-KNHC.201909020423.txt'
+    parse_hdob_file(fname)
+
+
+
+
+if __name__ == '__main__':
+    main()
