@@ -5,6 +5,7 @@ wtlma/*.txt
 goes/*.txt
 tropical/*.xml
 tropical/*.txt
+tropical/aircraft_obs/*.txt
 # Don't track these files
 *.pyc
 *.dbf
