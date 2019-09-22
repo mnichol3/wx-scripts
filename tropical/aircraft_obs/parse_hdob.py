@@ -101,6 +101,101 @@ class HDOBFile(object):
 
 
 
+def get_hdob_fnames(date=None, start=None, end=None, octant='AHONT1'):
+    """
+    Fetches NOAA & USAF aircraft observation files published on the given date,
+    or during the time period defined by start & end. Returns a dictionary
+    containing a list of NOAA HDOB filenames and a list of USAF HDOB filenames
+
+    Parameters
+    ------------
+    date : str, optional
+        Desired date of the aircraft obs. Format: YYYYMMDD
+    start : str, optional
+        Date & time that defines the beginning of the desired time period
+        Format: YYYYMMDD-HHMM (UTC)
+    end : str, optional
+        Date & time that defines the end of the desired time period. Must be
+        given if 'start' is given
+        Format: YYYYMMDD-HHMM (UTC)
+    octant : str, optional
+        Octant code indicating where the observation was taken. Default is 'AHONT1'
+        (Atlantic Basin)
+
+    Returns
+    ------------
+    fname_dict : dictionary; keys : str, values : list of str
+        A dictionary containing a list of NOAA aircraft observations and a list
+        of USAF aircraft observtions. EX: {'usaf': usaf_list, 'noaa': noaa_list}
+
+
+    Notes
+    ------
+    * 22 Sep 2019
+        - Handle case where flight from previous day continues into the
+          day specified by 'date'
+
+          Ex: date = '20190906'
+
+          https://www.nhc.noaa.gov/archive/recon/2019/AHONT1/AHONT1-KWBC.201909060000.txt
+          https://www.nhc.noaa.gov/archive/recon/2019/AHONT1/AHONT1-KWBC.201909060010.txt
+          https://www.nhc.noaa.gov/archive/recon/2019/AHONT1/AHONT1-KWBC.201909060020.txt
+
+    """
+    col_names = ['filename', 'date_time']
+    drop_cols = [0, 3, 4]
+    fname_dict = {'noaa': [], 'usaf': []}
+    base_url = 'https://www.nhc.noaa.gov/archive/recon/'
+
+    if (date):
+        date = datetime.strptime(date, '%Y%m%d')
+        url_year = date.year
+    elif (start):
+        if not (end):
+            raise ValueError("'end' argument cannot be None")
+        start = datetime.strptime(start, '%Y%m%d-%H%M')
+        end = datetime.strptime(end, '%Y%m%d-%H%M')
+        url_year = start.year
+    else:
+        raise ValueError("'date' and 'start' args cannot both be None")
+
+    base_url = base_url + '{}/{}/'.format(url_year, octant)
+
+    # Read the list of filenames from the url
+    fname_df = pd.read_html(base_url, skiprows=[0,1,2,3,4,5,6,7,8,9])[0]
+
+    # Drop all columns except for the filename & publishing date time columns
+    fname_df.drop(fname_df.columns[drop_cols],axis=1,inplace=True)
+
+    # Drop any NaN values
+    fname_df = fname_df.dropna(how="all")
+
+    # set the dataframe column names
+    fname_df.columns = col_names
+
+    if (date):
+        for idx, row in fname_df.iterrows():
+            curr_dt = datetime.strptime(row['date_time'].split(' ')[0], '%Y-%m-%d')
+            curr_fname = row['filename']
+            if (curr_dt == date):
+                if ('KNHC' in curr_fname):
+                    fname_dict['usaf'].append(base_url + '{}'.format(curr_fname))
+                else:
+                    fname_dict['noaa'].append(base_url + '{}'.format(curr_fname))
+    else:
+        for idx, row in fname_df.iterrows():
+            curr_dt = datetime.strptime(row['date_time'], '%Y-%m-%d %H:%M')
+            curr_fname = row['filename']
+            if ((curr_dt >= start) and (curr_dt <= end)):
+                if ('KNHC' in curr_fname):
+                    fname_dict['usaf'].append(base_url + '{}'.format(curr_fname))
+                else:
+                    fname_dict['noaa'].append(base_url + '{}'.format(curr_fname))
+
+    return fname_dict
+
+
+
 def parse_hdob_file(path):
     """
     Read an HDOB file and return a HDOBFile object
@@ -180,7 +275,12 @@ def minutes_degrees(coord, kywrd):
 
 def main():
     fname = 'AHONT1-KNHC.201909020423.txt'
-    parse_hdob_file(fname)
+    # parse_hdob_file(fname)
+    fnames = get_hdob_fnames(date='20190906')
+    for f in fnames['noaa']:
+        print(f)
+    for f in fnames['usaf']:
+        print(f)
 
 
 
