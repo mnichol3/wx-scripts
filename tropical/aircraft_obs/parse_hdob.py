@@ -95,6 +95,12 @@ class HDOBFile(object):
 
 
 
+    def __repr__(self):
+        return '<HDOBFile object - {} {} {}-{}z {}>'.format(self.storm_name, self.obs_date,
+                        self.obs_time_first, self.obs_time_last, self.aircraft_callsign)
+
+
+
 def parse_hdob_file(path):
     """
     Read an HDOB file and return a HDOBFile object
@@ -127,7 +133,9 @@ def parse_hdob_file(path):
                     curr_line = line.split(' ')
                     curr_line = [x for x in curr_line if x != ' ']
                     obs_data.append(curr_line)
-    print(obs_data)
+    hdob_df = pd.DataFrame(data=obs_data, index=range(0, len(obs_data)), columns=col_names)
+    hdob_obj = HDOBFile(file_header, hdob_df)
+    print(hdob_obj)
     # elif (isURL):
 
 
