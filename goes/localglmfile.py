@@ -5,6 +5,7 @@ A simple class for local GOES-16 Geostationary Lightning Mapper (GLM) netCDF fil
 """
 import os
 import re
+from datetime import datetime
 
 
 class LocalGLMFile(object):
@@ -30,7 +31,7 @@ class LocalGLMFile(object):
 
     def set_data(self, new_data):
         self.data = new_data
-        self.data_type = data['data_type']
+        self.data_type = new_data['data_type']
 
 
 
@@ -83,4 +84,4 @@ class LocalGLMFile(object):
 
 
     def __repr__(self):
-        return '<LocalGLMFile object - {} {}>'.format(self.scan_date, self.scan_time, self.data_type)
+        return '<LocalGLMFile object - {} {} {}>'.format(self.scan_date, self.scan_time, self.data_type)

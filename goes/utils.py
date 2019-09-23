@@ -368,7 +368,7 @@ def _read_file_glm_egf(abs_path, product='f'):
     > netCDF4.Dataset
     """
     data_dict = {}
-    
+
     if (not product in ['e', 'f', 'g']):
         raise ValueError("Invalid product argument. Valid: 'e', 'f', 'g'")
 
@@ -416,7 +416,7 @@ def _read_file_glm_egf(abs_path, product='f'):
     fh.close()
     fh = None
 
-    glm_obj = LocalGLMFile(f_path, 'aws')
+    glm_obj = LocalGLMFile(abs_path, 'aws')
     glm_obj.set_data(data_dict)
 
     return glm_obj
