@@ -278,7 +278,6 @@ def read_file_glm(abs_path, product='f', window=False):
     > localglmfile.py
     > netCDF4.Dataset
     """
-    data_dict = {}
     file_type_re = r'(\w{4}\d{2}_KNES)'
 
     if (re.match(abs_path, file_type_re)):
@@ -311,6 +310,8 @@ def _read_file_glm_fed(abs_path,  window=False):
     > localglmfile.py
     > netCDF4.Dataset
     """
+    data_dict = {}
+
     f_path = trim_header(abs_path)
 
     fh = Dataset(f_path, 'r')
@@ -366,6 +367,8 @@ def _read_file_glm_egf(abs_path, product='f'):
     > localglmfile.py
     > netCDF4.Dataset
     """
+    data_dict = {}
+    
     if (not product in ['e', 'f', 'g']):
         raise ValueError("Invalid product argument. Valid: 'e', 'f', 'g'")
 
