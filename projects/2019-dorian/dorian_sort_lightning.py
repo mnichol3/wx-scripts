@@ -3,15 +3,18 @@ from os import walk, listdir
 from datetime import datetime
 import pandas as pd
 import re
+import numpy as np
+import sys
 
 ############ Imports for geodesic point buffer funcs #########
 import pyproj
-from shapely.ops import transform
+from shapely.ops import transform, polygonize
 from shapely.geometry import Point, LineString
 from functools import partial
 ##############################################################
 
-# from utils import read_file_glm
+from glm_utils import read_file_glm_egf
+from glmflash import GLMFlash
 
 
 def pp_dirs(base_path):
@@ -76,26 +79,68 @@ def get_files_for_date_time(base_path, date_time):
 
 
 
-def proccess_flashes(fnames, center_coords, radius):
+def process_flashes(glm_fnames, center_coords, radius):
     """
+    Parameters
+    -----------
+    glm_fnames : list of str
+        List of absolute paths (including file names) for the set of GLM files
+        to be opened & processed
+    center_coords : tuple of floats
+        Coordinates of the best track center for the time corresponding to the
+        GLM files. Format: (lat, lon)
+    radius : int
+        Desired radius of the geodesic point buffer (in km)
 
-    TODO: Mon 23 Sept
-
-    * Get the 3 GLM files pertaining to each minute
-        * Possible implementations
-            1) for 0 to num_files-3:
-                    read file[i]
-                    read file[i+1]
-                    read file[i+2]
-                    i += 3
-
-            2) preprocess filenames into dict
-                {'00': [fname_0000, fname_0020, fname_0040],
-                 '01': [fname_0100, fname_0120, fname_0140],
-                  ...
-                 }
     """
-    return -1
+    flashes = {}
+    flashes_ne = []
+    flashes_nw = []
+    flashes_sw = []
+    flashes_se = []
+
+
+    range_buffer = geodesic_point_buffer(center_coords[0], center_coords[1], 450)
+
+    nsew_pts = get_quadrant_coords(buff_obj=range_buffer)
+
+    quadrants = get_quadrants(range_buffer, nsew_pts)
+
+    for f in glm_fnames:
+        curr_obj = read_file_glm_egf(f, product='f')
+
+        for idx, curr_x in enumerate(curr_obj.data['x']):
+            curr_pt = Point(curr_x, curr_obj.data['y'][idx])
+            if (quadrants['ne'].contains(curr_pt)):
+                flashes_ne.append(GLMFlash(curr_obj.scan_date, curr_obj.scan_time,
+                                           curr_x, curr_obj.data['y'][idx],
+                                           curr_obj.data['data']['area'][idx],
+                                           curr_obj.data['data']['energy'][idx],
+                                           center_coords))
+            elif (quadrants['nw'].contains(curr_pt)):
+                flashes_nw.append(GLMFlash(curr_obj.scan_date, curr_obj.scan_time,
+                                           curr_x, curr_obj.data['y'][idx],
+                                           curr_obj.data['data']['area'][idx],
+                                           curr_obj.data['data']['energy'][idx],
+                                           center_coords))
+            elif (quadrants['sw'].contains(curr_pt)):
+                flashes_sw.append(GLMFlash(curr_obj.scan_date, curr_obj.scan_time,
+                                           curr_x, curr_obj.data['y'][idx],
+                                           curr_obj.data['data']['area'][idx],
+                                           curr_obj.data['data']['energy'][idx],
+                                           center_coords))
+            elif (quadrants['se'].contains(curr_pt)):
+                flashes_se.append(GLMFlash(curr_obj.scan_date, curr_obj.scan_time,
+                                           curr_x, curr_obj.data['y'][idx],
+                                           curr_obj.data['data']['area'][idx],
+                                           curr_obj.data['data']['energy'][idx],
+                                           center_coords))
+    flashes['ne'] = flashes_ne
+    flashes['nw'] = flashes_nw
+    flashes['sw'] = flashes_sw
+    flashes['se'] = flashes_se
+
+    return flashes
 
 
 
@@ -202,3 +247,50 @@ def get_quadrant_coords(buff_obj=None, coords=None, pprint=False):
             print('{}: {:.3f}, {:.3f}'.format(key, val[0], val[1]))
 
     return coord_dict
+
+
+
+def get_quadrants(range_buffer, nsew_pts):
+    """
+    Split a geodesic point buffer into 4 quadrants and return them as
+    a dictionary of polygons
+    """
+    quad_dict = {}
+    quarters = []
+
+    # Create lines to bisect the circular point buffer with
+    horiz_bisect_line = LineString([Point(nsew_pts['w'][1] - 1, nsew_pts['w'][0]),
+                                    Point(nsew_pts['e'][1] + 1, nsew_pts['e'][0])])
+
+    verti_bisect_line = LineString([Point(nsew_pts['s'][1], nsew_pts['s'][0] - 1),
+                                    Point(nsew_pts['n'][1], nsew_pts['n'][0] + 1)])
+
+    # Bisect the cilcular polygon, yielding two halves
+    halves = horiz_bisect_line.union(LineString(list(range_buffer.coords)))
+    halves = polygonize(halves)
+
+    # Bisect each of the halves created above, creating 4 quadrants
+    for half in halves:
+        quarter = verti_bisect_line.union(LineString(list(half.exterior.coords)))
+        quarter = polygonize(quarter)
+        quarters.append(quarter)
+
+    quadrants = []
+    for geom in quarters:
+        for g in geom:
+            quadrants.append(g)
+
+    sort_1 = sorted(quadrants, key = lambda q: q.centroid.x)
+    west_pts = sort_1[:2]
+    east_pts = sort_1[2:]
+
+    sort_west = sorted(west_pts, key = lambda p: p.centroid.y)
+    sort_east = sorted(east_pts, key = lambda p: p.centroid.y)
+
+    quad_dict['sw'] = sort_west[0]
+    quad_dict['nw'] = sort_west[1]
+
+    quad_dict['se'] = sort_east[0]
+    quad_dict['ne'] = sort_east[1]
+
+    return quad_dict

@@ -1,7 +1,9 @@
 from datetime import datetime
+import numpy as np
+import pandas as pd
 
 from nhc_gis_track import track_csv_to_df, pp_df
-from dorian_sort_lightning import geodesic_point_buffer, get_quadrant_coords, get_files_for_date_time
+from dorian_sort_lightning import geodesic_point_buffer, get_quadrant_coords, get_files_for_date_time, process_flashes
 from glm_utils import read_file_glm_egf
 from localglmfile import LocalGLMFile
 
@@ -14,15 +16,19 @@ def main():
     # Col names: date-time (index), storm_num, lat, lon, mslp, wind, ss
     # track_df = track_csv_to_df(track_path)
 
+    center_coords = (26.8, -78.4)
     glm_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/aws'
     glm_fnames = get_files_for_date_time(glm_path, '2019-09-02 23:48:00')
 
-    glm_objs = []
-    for f in glm_fnames:
-        glm_objs.append(read_file_glm_egf(f, product='f'))
+    flashes = process_flashes(glm_fnames, center_coords, 450)
+    
+    for flash in flashes['ne']:
+        print(flash)
+        print(flash.area)
+        print(flash.energy)
+        print(flash.radial_dist)
 
-    for obj in glm_objs:
-        print(obj)
+
 
 
 
