@@ -21,12 +21,35 @@ def main():
     glm_fnames = get_files_for_date_time(glm_path, '2019-09-02 23:48:00')
 
     flashes = process_flashes(glm_fnames, center_coords, 450)
-    
+
+    print('######################### NE Flashes #########################')
     for flash in flashes['ne']:
         print(flash)
-        print(flash.area)
-        print(flash.energy)
-        print(flash.radial_dist)
+        print('     Flash Area:     {}'.format(flash.area))
+        print('     Flash Energy:   {}'.format(flash.energy))
+        print('     Radial Dist:    {}'.format(flash.radial_dist))
+
+    print('\n######################### NW Flashes #########################')
+    for flash in flashes['nw']:
+        print(flash)
+        print('     Flash Area:     {}'.format(flash.area))
+        print('     Flash Energy:   {}'.format(flash.energy))
+        print('     Radial Dist:    {}'.format(flash.radial_dist))
+
+    print('\n######################### SE Flashes #########################')
+    for flash in flashes['se']:
+        print(flash)
+        print('     Flash Area:     {}'.format(flash.area))
+        print('     Flash Energy:   {}'.format(flash.energy))
+        print('     Radial Dist:    {}'.format(flash.radial_dist))
+
+
+    print('\n######################### SW Flashes #########################')
+    for flash in flashes['sw']:
+        print(flash)
+        print('     Flash Area:     {}'.format(flash.area))
+        print('     Flash Energy:   {}'.format(flash.energy))
+        print('     Radial Dist:    {}'.format(flash.radial_dist))
 
 
 
