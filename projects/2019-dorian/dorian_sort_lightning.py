@@ -1,6 +1,8 @@
 from os.path import join, isdir, isfile
 from os import walk, listdir
+from datetime import datetime
 import pandas as pd
+import re
 
 ############ Imports for geodesic point buffer funcs #########
 import pyproj
@@ -26,6 +28,51 @@ def pp_dirs(base_path):
                     print('  |    |-- {}'.format(f))
             print('  |')
         print('\n')
+
+
+
+def get_files_for_date_time(base_path, date_time):
+    """
+    Get the GLM files for a given date & time
+
+    Parameters
+    ----------
+    base_path : str
+        Path to the local parent GLM file directory
+    date_time : str
+        Date and time of the desired GLM files.
+        Format: YYYY-MM-DD HH:MM:SS
+    """
+    fnames = []
+    scantime_re = re.compile(r'_s(\d{11})')
+
+    # date_time = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
+    date_time = datetime.strptime(date_time[:-3], '%Y-%m-%d %H:%M')
+
+    # Parse the subdirectory path for the desired date & time of the GLM file
+    subdir_path = join(base_path, str(date_time.timetuple().tm_yday), str(date_time.hour))
+
+    file_count = 0
+    for f in listdir(subdir_path):
+
+        # Iterate through the files in the date & hour subdirectory tree and
+        # attempt to match the starting scan date & time in the file name
+        match = re.search(scantime_re, f)
+        if (match):
+
+            # If the scan date & time in the file name is matched, create
+            # a datetime object from it to compare to our desired datetime obj
+            f_scantime = datetime.strptime(match.group(1), '%Y%j%H%M')
+            if ((f_scantime == date_time) and isfile(join(subdir_path, f))):
+                fnames.append(join(subdir_path, f))
+
+                # Since we're looking for the GLM files for a given hour & minute,
+                # and GLM publishes at most 3 files a minute, once we find our 3
+                # files we can break the loop and save some execution time
+                file_count += 1
+                if (file_count >= 3):
+                    break
+    return fnames
 
 
 
