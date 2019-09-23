@@ -9,24 +9,28 @@ import re
 
 class LocalGLMFile(object):
 
-    def __init__(self, abs_path):
+    def __init__(self, abs_path, type):
         super(LocalGLMFile, self).__init__()
-        self._scan_date_re = re.compile(r'\.(\d{8})')
-        self._scan_time_re = re.compile(r'_\d{2}(\d{4})_')
         self.abs_path = abs_path
         self.filename = None
         self.scan_date = None
         self.scan_time = None
         self.data = None
+        self.data_type = None
         if (abs_path is not None):
             self._parse_fname(abs_path)
-            self._parse_scan_date()
-            self._parse_scan_time()
+            if (type == 'awips'):
+                self._parse_scan_datetime_awips()
+            elif(type == 'aws'):
+                self._parse_scan_datetime_aws()
+            else:
+                raise ValueError("Invalid type argument. Must be 'aws' or 'awips'")
 
 
 
     def set_data(self, new_data):
         self.data = new_data
+        self.data_type = data['data_type']
 
 
 
@@ -35,38 +39,48 @@ class LocalGLMFile(object):
 
 
 
-    def _parse_scan_date(self):
+    def _parse_scan_datetime_aws(self):
+        """
+        Ex: OR_GLM-L2-LCFA_G16_s20192481255200_e20192481255400_c20192481255427.nc
+        """
         if (self.filename is not None):
-            match = self._scan_date_re.search(self.filename)
+            datetime_re = r'_s(\d{11})'
+            match = re.search(datetime_re, self.filename)
 
             if (match):
-                date = match.group(1)
-
-                year = date[0:4]
-                month = date[4:6].zfill(2)
-                day = date[6:8].zfill(2)
-
-                self.scan_date = month + '-' + day + '-' + year
+                f_scantime = datetime.strptime(match.group(1), '%Y%j%H%M')
+                self.scan_date = datetime.strftime(f_scantime, '%m-%d-%Y')
+                self.scan_time = datetime.strftime(f_scantime, '%H:%M')
+            else:
+                raise ValueError('Unable to parse file scan datetime')
         else:
             raise ValueError('Filepath cannot be None')
 
 
 
-    def _parse_scan_time(self):
+    def _parse_scan_datetime_awips(self):
+        """
+        Ex: IXTR99_KNES_222357_35176.2019052223
+        """
         if (self.filename is not None):
-            match = self._scan_time_re.search(self.filename)
+            scan_date_re = r'\.(\d{8})'
+            scan_time_re = r'_\d{2}(\d{4})_'
+            match_date = re.search(scan_date_re, self.filename)
+            match_time = re.search(scan_time_re, self.filename)
 
-            if (match):
-                time = match.group(1)
+            if (match_date and match_time):
+                f_date = match_date.group(1)
+                f_time = match_time.group(1)
 
-                hour = time[0:2].zfill(2)
-                mins = time[2:4].zfill(2)
+                self.scan_date = datetime.strftime(f_date, '%m-%d-%Y')
+                self.scan_time = datetime.strftime(f_time, '%H:%M')
+            else:
+                raise ValueError('Unable to parse file scan datetime')
 
-                self.scan_time = hour + ":" + mins
         else:
             raise ValueError('Filepath cannot be None')
 
 
 
     def __repr__(self):
-        return '<LocalGLMFile object - {}-{}>'.format(self.scan_date, self.scan_time)
+        return '<LocalGLMFile object - {} {}>'.format(self.scan_date, self.scan_time, self.data_type)
