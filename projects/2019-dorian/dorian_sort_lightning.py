@@ -53,7 +53,7 @@ def get_files_for_date_time(base_path, date_time):
     date_time = datetime.strptime(date_time[:-3], '%Y-%m-%d %H:%M')
 
     # Parse the subdirectory path for the desired date & time of the GLM file
-    subdir_path = join(base_path, str(date_time.timetuple().tm_yday), str(date_time.hour))
+    subdir_path = join(base_path, str(date_time.timetuple().tm_yday), str(date_time.hour).zfill(2))
 
     file_count = 0
     for f in listdir(subdir_path):

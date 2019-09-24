@@ -63,6 +63,7 @@ def main():
 
     # Iterate over the interpolated best track center coordinates
     for index, row in track_df.iterrows():
+        print('Processing: {}'.format(index))
 
         # Lat & lon are type <class 'numpy.float64'>
         curr_dt = index
@@ -78,9 +79,12 @@ def main():
         flashes_sw += flashes['sw']
         flashes_se += flashes['se']
 
+        del flashes
+
     # When finished processing every time step, write the arrays of accumulated
     # flash objects to their own respective files in a format that can be read
     # into a Pandas Dataframe
+    print('Writing NE flashes to file')
     with open(fname_flashes_ne, 'w') as fh_ne:
         fh_ne.write('date_time,x,y,area,energy,radial_dist\ns')
 
@@ -89,6 +93,7 @@ def main():
                                                         flash.x, flash.y, flash.area,
                                                         flash.energy, flash.radial_dist))
 
+    print('Writing NW flashes to file')
     with open(fname_flashes_nw, 'w') as fh_nw:
         fh_nw.write('date_time,x,y,area,energy,radial_dist\n')
 
@@ -97,6 +102,7 @@ def main():
                                                         flash.x, flash.y, flash.area,
                                                         flash.energy, flash.radial_dist))
 
+    print('Writing SW flashes to file')
     with open(fname_flashes_sw, 'w') as fh_sw:
         fh_sw.write('date_time,x,y,area,energy,radial_dist\n')
 
@@ -105,6 +111,7 @@ def main():
                                                         flash.x, flash.y, flash.area,
                                                         flash.energy, flash.radial_dist))
 
+    print('Writing SE flashes to file')
     with open(fname_flashes_se, 'w') as fh_se:
         fh_se.write('date_time,x,y,area,energy,radial_dist\n')
 

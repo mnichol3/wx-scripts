@@ -16,7 +16,9 @@ def create_subdirs():
 
     sensors = ['abi/inf', 'glm/aws']
 
-    j_days = ['244', '245', '246', '247', '248', '249']
+    # j_days = ['244', '245', '246', '247', '248', '249']
+    # j_days = [str(x) for x in range(236, 244)]
+    j_days = [str(x) for x in range(250, 253)]
 
     hours = [str(x).zfill(2) for x in range(0, 24)]
 
@@ -48,7 +50,8 @@ def sort_files():
     # base_path = '/media/mnichol3/tsb1/data/storms/2019-dorian'
     base_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian'
 
-    sensors = ['abi/inf', 'glm/aws']
+    # sensors = ['abi/inf', 'glm/aws']
+    sensors = ['glm/aws']
 
     for sensor in sensors:
         curr_dir = os.path.join(base_path, sensor)
@@ -67,5 +70,5 @@ def sort_files():
                     # sys.exit(0)
                     shutil.move(curr_path, new_path)
 
-create_subdirs()
+# create_subdirs()
 sort_files()
