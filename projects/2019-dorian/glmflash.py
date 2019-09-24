@@ -58,4 +58,4 @@ class GLMFlash(object):
 
 
     def __repr__(self):
-        return '<GLMFlash object - {} {} ({:.3f}, {:.3f})>'.format(self.date, self.time, self.x, self.y, )
+        return '<GLMFlash object - {} {} ({:.3f}, {:.3f})>'.format(self.date, self.time, self.x, self.y)

@@ -504,34 +504,37 @@ def plot_raw_track(shp_path, storm_name, year, extent=None, show=True, save=Fals
 
 def main():
     # Definitions and whatnot
-    shp_path = '/media/mnichol3/tsb1/data/storms/2019-dorian/al052019_initial_best_track/AL052019_pts.shp'
+    shp_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/al052019_initial_best_track/AL052019_pts.shp'
     # txt_out_raw = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track.txt'
     # txt_out_10min = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_10min.txt'
     # txt_out_1min = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_1min.txt'
 
-    interp_dict = {'10T': '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_10min.txt',
-                   'T': '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_1min.txt'}
+    interp_dict = {'30T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_30min.txt',
+                   '10T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_10min.txt',
+                   '1T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_1min.txt'}
 
     ############################################################################
     ############################################################################
 
-    interp_freq = '1T'  # 1-minute interpolation
+    # interp_freq = '1T'  # 1-minute interpolation
     # interp_freq = '10T'  # 10-minute interpolation
-    write = False
+    interp_freq = '30T'  # 30-minute interpolation
+
+    write = True
     prnt = False
-    pp = True
+    pp = False
 
     meta = get_track_meta(shp_path)
     pp_meta(meta)
 
-    # df = track_shp_to_df(shp_path)
-    # df = interp_df(df, interp_freq)
-    #
-    # if (prnt):
-    #     print(df)
-    #
-    # if (write):
-    #     df_to_csv(df, interp_dict[interp_freq])
+    df = track_shp_to_df(shp_path)
+    df = interp_track_df(df, interp_freq)
+
+    if (prnt):
+        print(df)
+
+    if (write):
+        track_df_to_csv(df, interp_dict[interp_freq])
     #
     # if (pp):
     #     pp_df(df)
