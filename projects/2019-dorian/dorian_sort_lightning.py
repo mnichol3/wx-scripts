@@ -372,16 +372,88 @@ def total_flashes_by_hour(flash_fnames, write=False, outpath=None, pp=False):
         flash_count_df.to_csv(outpath, sep=',', header=True, index=False)
 
     if (pp):
-        print('{}  {}  {}  {}  {}'.format('\n  date_time  ', ' ne ', ' nw ', ' sw ', ' se '))
-        print('{}  {}  {}  {}  {}'.format('-'*13, '-'*4, '-'*4, '-'*4, '-'*4))
+        import time
+        print('{}  {}  {}  {}  {}  {}'.format('\nidx', '  date_time  ', ' ne ', ' nw ', ' sw ', ' se '))
+        print('{}  {}  {}  {}  {}  {}'.format('-'*3, '-'*13, '-'*4, '-'*4, '-'*4, '-'*4))
+
         for index, row in flash_count_df.iterrows():
-            print('{}  {}  {}  {}  {}'.format(row['date_time'], str(row['ne']).ljust(4, ' '),
+            print('{}  {}  {}  {}  {}  {}'.format(str(index).ljust(3, ' '),
+                                         row['date_time'], str(row['ne']).ljust(4, ' '),
                                          str(row['nw']).ljust(4, ' '),
                                          str(row['sw']).ljust(4, ' '),
                                          str(row['se']).ljust(4, ' ')))
+            time.sleep(0.5)
 
     return flash_count_df
 
 
-def plot_flashes_vs_intensity(flash_fnames, track_fname):
-    dt_0 = datetime.strptime('2019-08-24 12:00', '%Y-%m-%d %H:%M')
+
+def plot_flashes_vs_intensity(flash_count_df, best_track_df):
+    """
+
+    Parameters
+    ----------
+    flash_count_df : str or Pandas DataFrame
+        Either:
+            - Absolute path of the file containing flash count data to be read
+              into a DataFrame
+              ### or ###
+            - DataFrame containing flash count data
+    best_track_df : str or Pandas DataFrame
+        Either:
+            - Absolute path of the file containing interpolated Best Track data
+              to be read into a DataFrame
+              ### or ###
+            - DataFrame containing Best Track data
+    """
+    x_tick_labels = []
+    x_ticks = []
+    # Validate flash_count_df arg
+    if (isinstance(flash_count_df, str)):
+        flash_count_df = pd.read_csv(flash_count_df, sep=',', header=0)
+    elif (not isinstance(flash_count_df, pd.DataFrame)):
+        raise TypeError(("'flash_count_df' arg must be an instance of str or Pandas "
+                         "DataFrame, got {}".format(type(flash_count_df))))
+
+    # Validate best_track_dfs arg
+    if (isinstance(best_track_df, str)):
+        best_track_df = pd.read_csv(best_track_df, sep=',', header=0)
+    elif (not isinstance(best_track_df, pd.DataFrame)):
+        raise TypeError(("'best_track_df' arg must be an instance of str or Pandas "
+                        "DataFrame, got {}".format(type(best_track_df))))
+
+    # Make sure the two DataFrames have the same length (i.e., the same number of data points)
+    if (len(best_track_df.index) != len(flash_count_df.index)):
+        raise ValueError(("'best_track_df' and 'flash_count_df' must have same length\n"
+                          "Len best_track_df: {}, Len flash_count_df: {}".format(
+                                    len(best_track_df.index), len(flash_count_df.index))))
+
+
+    # Get a list of date_time strings for the x-tick labels
+    for index, row in flash_count_df.iterrows():
+        if (index % 12 == 0):
+            x_ticks.append(index)
+            x_tick_labels.append(row['date_time'][5:] + 'z')
+
+    # Create a figure
+    fig, ax1 = plt.subplots(figsize = (8, 8))
+
+    ax1.set_xlabel('Date & Time')
+    ax1.set_ylabel('GLM Flashes (1/hour)')
+    ax1.plot(flash_count_df.index, flash_count_df['ne'], color='red')
+    ax1.plot(flash_count_df.index, flash_count_df['nw'], color='green')
+    ax1.plot(flash_count_df.index, flash_count_df['sw'], color='blue')
+    ax1.plot(flash_count_df.index, flash_count_df['se'], color='orange')
+    plt.xticks(x_ticks, x_tick_labels, rotation=45, ha='right')
+    plt.legend(('NE Quadrant', 'NW Quadrant', 'SW Quadrant', 'SE Quadrant'), loc='upper right')
+
+    # Create a twin x axis to plot intensity on
+    ax2 = ax1.twinx()
+    ax2_color = 'fuchsia'
+    ax2.set_ylabel('Mean Sea Level Pressure (mb)', color=ax2_color)
+    ax2.plot(best_track_df.index, best_track_df['mslp'], color=ax2_color)
+    ax2.tick_params(axis='y', labelcolor=ax2_color)
+    plt.yticks(np.arange(900, 1020, 10))
+    plt.title('Hurricane Dorian GLM-Observed FLash Count & Mean Sea Level Pressure vs. Time')
+
+    plt.show()

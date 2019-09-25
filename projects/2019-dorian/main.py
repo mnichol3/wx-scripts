@@ -4,7 +4,7 @@ import pandas as pd
 import sys
 
 from nhc_gis_track import track_csv_to_df, pp_df
-from dorian_sort_lightning import geodesic_point_buffer, get_quadrant_coords, get_files_for_date_time, process_flashes, total_flashes_by_hour
+from dorian_sort_lightning import process_flashes, total_flashes_by_hour, plot_flashes_vs_intensity
 from glm_utils import read_file_glm_egf
 from localglmfile import LocalGLMFile
 
@@ -116,6 +116,7 @@ def run_process_flashes(track_path, glm_path, flash_out_paths):
 
 def main():
     track_path_1min = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_1min.txt'
+    track_path_60min = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_60min.txt'
 
     fname_flashes_ne = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/flash_stats/flashes_ne.txt'
     fname_flashes_nw = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/flash_stats/flashes_nw.txt'
@@ -133,7 +134,12 @@ def main():
 
     # run_process_flashes(track_path_1min, glm_path, flash_paths)
     # total_flashes_by_hour(flash_paths, write=True, outpath=fname_hourly_totals)
-    total_flashes_by_hour(flash_paths, pp=True)
+    # total_flashes_by_hour(flash_paths, pp=True)
+
+    # flash_count_df = pd.read_csv(fname_hourly_totals, sep=',', header=0)
+    # print(flash_count_df)
+    
+    plot_flashes_vs_intensity(fname_hourly_totals, track_path_60min)
 
 
 
