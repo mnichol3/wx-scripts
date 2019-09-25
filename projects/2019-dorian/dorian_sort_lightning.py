@@ -1,10 +1,13 @@
 from os.path import join, isdir, isfile
 from os import walk, listdir
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import re
 import numpy as np
 import sys
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 ############ Imports for geodesic point buffer funcs #########
 import pyproj
@@ -294,3 +297,80 @@ def get_quadrants(range_buffer, nsew_pts):
     quad_dict['ne'] = sort_east[1]
 
     return quad_dict
+
+
+
+def total_flashes_by_hour(flash_fnames, write=False, outpath=None):
+    """
+    Total the amount of flashes per hour for each quadrant
+
+    Parameters
+    -----------
+    flash_names : dict of str
+        Dictionary where each key is a quadrant and the value is the respective
+        filtered flash file
+
+        Keys: 'ne', 'nw', 'sw', 'se'
+    write : Bool, optional
+        If True, write the resulting dataframe to a file specified by 'outpath'
+        Default value is False
+    outpath : str
+        Path, including the filename, to save the dataframe to. Must be given if
+        'write' is True. Default value is None
+
+    Returns
+    --------
+    flash_count_df : Pandas DataFrame
+        DataFrame containing total flash amounts for each hour in each quadrant.
+        Columns: 'date_time', 'ne', 'nw', 'sw', 'se'
+            date_time format: YYYY-MM-DD-HH
+    """
+    flash_counts = {'ne': {},
+                    'nw': {},
+                    'sw': {},
+                    'se': {}}
+
+    t_0 = datetime.strptime('2019-08-24 12:00', '%Y-%m-%d %H:%M')
+
+    # Change ending hour from 00:00 to 01:00 because of how range() works
+    t_f = datetime.strptime('2019-09-09 01:00', '%Y-%m-%d %H:%M')
+
+    date_range = [t_0 + timedelta(seconds=x*3600) for x in range(int((t_f - t_0).total_seconds() / 3600))]
+
+    # Set each datetime value in each quadrant to 0
+    for dt in date_range:
+        curr_dt = datetime.strftime(dt, '%Y-%m-%d-%H')
+        for quad, val in flash_counts.items():
+            flash_counts[quad][curr_dt] = 0
+
+    for quad, fname in flash_fnames.items():
+        print('Processing {}'.format(quad.upper()))
+
+        with open(fname, 'r') as fh:
+
+            # Skip first line in the file which contains data column names
+            next(fh)
+
+            for line in fh:
+                curr_dt = line.split(',')[0]
+                curr_dt = datetime.strptime(curr_dt, '%m-%d-%Y %H:%M')
+                curr_dt_str = datetime.strftime(curr_dt, '%Y-%m-%d-%H')
+
+                flash_counts[quad][curr_dt_str] += 1
+
+
+    # for key, val in flash_counts['ne'].items():
+    #     print('{}z --> {}'.format(key, val))
+
+    flash_count_df = pd.DataFrame.from_dict(flash_counts, orient='columns').reset_index()
+    flash_count_df.columns = ['date_time', 'ne', 'nw', 'sw', 'se']
+
+    if ((write) and (outpath is not None)):
+        print('     Writing DataFrame to File...')
+        flash_count_df.to_csv(outpath, sep=',', header=True, index=False)
+
+    return flash_count_df
+
+
+def plot_flashes_vs_intensity(flash_fnames, track_fname):
+    dt_0 = datetime.strptime('2019-08-24 12:00', '%Y-%m-%d %H:%M')
