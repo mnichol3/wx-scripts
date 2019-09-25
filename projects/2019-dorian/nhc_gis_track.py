@@ -509,7 +509,8 @@ def main():
     # txt_out_10min = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_10min.txt'
     # txt_out_1min = '/media/mnichol3/tsb1/data/storms/2019-dorian/initial_best_track_interp_1min.txt'
 
-    interp_dict = {'30T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_30min.txt',
+    interp_dict = {'60T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_60min.txt',
+                   '30T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_30min.txt',
                    '10T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_10min.txt',
                    '1T': '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_1min.txt'}
 
@@ -518,7 +519,7 @@ def main():
 
     # interp_freq = '1T'  # 1-minute interpolation
     # interp_freq = '10T'  # 10-minute interpolation
-    interp_freq = '30T'  # 30-minute interpolation
+    interp_freq = '60T'  # 30-minute interpolation
 
     write = True
     prnt = False
