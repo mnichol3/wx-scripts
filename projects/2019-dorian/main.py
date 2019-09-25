@@ -132,7 +132,8 @@ def main():
                    'se': fname_flashes_se}
 
     # run_process_flashes(track_path_1min, glm_path, flash_paths)
-    total_flashes_by_hour(flash_paths, write=True, outpath=fname_hourly_totals)
+    # total_flashes_by_hour(flash_paths, write=True, outpath=fname_hourly_totals)
+    total_flashes_by_hour(flash_paths, pp=True)
 
 
 

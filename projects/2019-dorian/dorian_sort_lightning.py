@@ -300,7 +300,7 @@ def get_quadrants(range_buffer, nsew_pts):
 
 
 
-def total_flashes_by_hour(flash_fnames, write=False, outpath=None):
+def total_flashes_by_hour(flash_fnames, write=False, outpath=None, pp=False):
     """
     Total the amount of flashes per hour for each quadrant
 
@@ -314,9 +314,11 @@ def total_flashes_by_hour(flash_fnames, write=False, outpath=None):
     write : Bool, optional
         If True, write the resulting dataframe to a file specified by 'outpath'
         Default value is False
-    outpath : str
+    outpath : str, optional
         Path, including the filename, to save the dataframe to. Must be given if
         'write' is True. Default value is None
+    pp : Bool, optional
+        If True, pretty print the DataFrame. Default value is False
 
     Returns
     --------
@@ -368,6 +370,15 @@ def total_flashes_by_hour(flash_fnames, write=False, outpath=None):
     if ((write) and (outpath is not None)):
         print('     Writing DataFrame to File...')
         flash_count_df.to_csv(outpath, sep=',', header=True, index=False)
+
+    if (pp):
+        print('{}  {}  {}  {}  {}'.format('\n  date_time  ', ' ne ', ' nw ', ' sw ', ' se '))
+        print('{}  {}  {}  {}  {}'.format('-'*13, '-'*4, '-'*4, '-'*4, '-'*4))
+        for index, row in flash_count_df.iterrows():
+            print('{}  {}  {}  {}  {}'.format(row['date_time'], str(row['ne']).ljust(4, ' '),
+                                         str(row['nw']).ljust(4, ' '),
+                                         str(row['sw']).ljust(4, ' '),
+                                         str(row['se']).ljust(4, ' ')))
 
     return flash_count_df
 
