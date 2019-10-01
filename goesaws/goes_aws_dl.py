@@ -108,9 +108,6 @@ def main():
     parser = create_arg_parser()
     args = parser.parse_args()
 
-    print(args.keep_aws_struct)
-    exit(0)
-
     conn = goesawsinterface.GoesAWSInterface()
 
     imgs = conn.get_avail_images_in_range(args.sat, args.instr, args.start, args.end,
