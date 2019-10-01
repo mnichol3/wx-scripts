@@ -25,22 +25,56 @@ Amazon Web Service (AWS) bucket.
 """
 
 def create_arg_parser():
+    """
+    Command line argument parser
+
+    Arguments
+        -c, --chan; optional (required for ABI files)
+            ABI imagery channel
+            Default is None. Stored as args.channel
+        -d, --dl; optional (required to dowlnoad files)
+            File download flag
+            Default is False. Stored as args.dl
+        --end
+            End datetime string. Format: MM-DD-YYYY-HH:MM (UTC)
+            Stored at args.end
+        -i, --instr; optional
+            Instrument to pull data from ('abi' or 'glm')
+            Default is 'abi'. Stored as args.instr
+        --kill_aws_struct; optional
+            If passed (False), the files will be downloaded directly into the directory
+            specified by out_dir. If not passed (True), the files will be downloaded
+            to out_dir/year/day_of_year/hour
+            Default is False. Stored as args.kill_aws_struct
+        -o, --out_dir; optional (required to dowlnoad files)
+            Directory to download files to
+            Stored as args.out_dir
+        -p, --prod; optional (required for ABI files)
+            ABI imagery product
+            Default is None. Stored as args.prod
+        -s, --sector; optional (required for ABI files)
+            ABI scan sector
+            Default is None. Stored as args.sector
+        --sat; optional
+            Satellite to pull data from.
+            Default is 'goes16'. Stored as args.sat
+        --start
+            Start datetime string. Format: MM-DD-YYYY-HH:MM (UTC)
+            Stored at args.start
+
+    """
     parser = argparse.ArgumentParser(description=parse_desc)
 
-    # Satellite argument (goes16, goes17)
-    # Not required. Default value is 'goes16'
     parser.add_argument('--sat', metavar='satellite', required=False,
                         dest='sat', default='goes16', action='store')
 
-    # Instrument ('abi', 'glm')
-    # Not required. Default value is 'abi'
     parser.add_argument('-i', '--instr', metavar='instrument', required=False,
                         dest='instr', action='store', type=str, default='abi',
                         help='Instrument/sensor')
 
     parser.add_argument('-p', '--prod', metavar='product', required=False,
                         dest='prod', action='store', type=str, default=None,
-                        help='Sensor product, e.g., CMIP, MCMIP, ...')
+                        help='ABI product, e.g., CMIP, MCMIP, ...')
 
     parser.add_argument('-c', '--chan', metavar='channel', required=False,
                         dest='channel', action='store', type=str, help='ABI Channel as a string',
@@ -62,13 +96,20 @@ def create_arg_parser():
     parser.add_argument('-d', '--dl', dest='dl', default=False, action='store_true',
                         help='File download flag')
 
+    parser.add_argument('--kill_aws_struct', dest='keep_aws_struct',
+                        action='store_false', help='Keep AWS directory structure')
+
     return parser
 
 
 
 def main():
+    from sys import exit
     parser = create_arg_parser()
     args = parser.parse_args()
+
+    print(args.keep_aws_struct)
+    exit(0)
 
     conn = goesawsinterface.GoesAWSInterface()
 
@@ -80,7 +121,8 @@ def main():
         print('{} --> {}'.format(img.scan_time, img.filename))
 
     if (args.dl and args.out_dir):
-        result = conn.download('goes16', imgs, args.out_dir, keep_aws_folders=True, threads=6)
+        result = conn.download('goes16', imgs, args.out_dir, keep_aws_folders=args.keep_aws_struct,
+                               threads=6)
 
         for x in result._successfiles:
             print(x.filepath)
