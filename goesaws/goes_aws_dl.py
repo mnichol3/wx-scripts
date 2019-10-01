@@ -10,6 +10,7 @@ Example usage
 > python goes_aws_dl.py --start '09-01-2019-00:00' --end '09-01-2019-00:15' -p 'CMIP' --sector 'M1' --chan '02'
 > python goes_aws_dl.py --start '09-01-2019-00:00' --end '09-01-2019-00:15' -p 'CMIP' --sector 'M1' --chan '02' -dl -o 'path/to/download'
 > python goes_aws_dl.py --start '09-01-2019-00:00' --end '09-01-2019-00:15' -p 'MCMIP' --sector 'C' -dl -o 'path/to/download'
+> python goes_aws_dl.py --start '09-01-2019-00:00' --end '09-01-2019-00:15' -p 'MCMIP' --sector 'C' -dl -o 'path/to/download' --kill_aws_struct
 
 GLM:
 > python goes_aws_dl.py -i 'glm' --start '09-01-2019-16:00' --end '09-01-2019-16:30'
@@ -104,7 +105,6 @@ def create_arg_parser():
 
 
 def main():
-    from sys import exit
     parser = create_arg_parser()
     args = parser.parse_args()
 
