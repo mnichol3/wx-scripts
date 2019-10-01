@@ -1763,7 +1763,8 @@ def plot_day_land_cloud_rgb(rgb, plot_comms, ax_extent=None):
     ########################## Save and/or show plot ##########################
     ###########################################################################
     if (plot_comms['save']):
-        plt_fname = 'DayLandCloudRGB-{}-{}.png'.format(rgb['sector'], scan_date)
+        # plt_fname = 'DayLandCloudRGB-{}-{}.png'.format(rgb['sector'], scan_date)
+        plt_fname = 'DayLandCloudRGB_{}_{}.png'.format(rgb['sector'], scan_date)
         print('     Saving figure as {}'.format(plt_fname))
         fig.savefig(join(plot_comms['outpath'], plt_fname), dpi=500)
     if (plot_comms['show']):
