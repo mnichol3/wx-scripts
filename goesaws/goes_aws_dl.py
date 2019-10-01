@@ -96,7 +96,7 @@ def create_arg_parser():
     parser.add_argument('-d', '--dl', dest='dl', default=False, action='store_true',
                         help='File download flag')
 
-    parser.add_argument('--kill_aws_struct', dest='keep_aws_struct',
+    parser.add_argument('--kill_aws_struct', dest='kill_aws_struct',
                         action='store_false', help='Keep AWS directory structure')
 
     return parser
@@ -121,7 +121,7 @@ def main():
         print('{} --> {}'.format(img.scan_time, img.filename))
 
     if (args.dl and args.out_dir):
-        result = conn.download('goes16', imgs, args.out_dir, keep_aws_folders=args.keep_aws_struct,
+        result = conn.download('goes16', imgs, args.out_dir, keep_aws_folders=args.kill_aws_struct,
                                threads=6)
 
         for x in result._successfiles:
