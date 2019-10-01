@@ -15,5 +15,4 @@ tropical/aircraft_obs/*.txt
 *.nc
 *.png
 *.jar
-
-
+*.log
