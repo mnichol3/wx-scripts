@@ -37,6 +37,17 @@ goesr_meso = {
 
 
 goeseast_full = goesr_full.copy()
+goeseast_full['y_img_bounds'] = {
+    'n': 0.151872,
+    's': -0.151872
+}
+
+goeseast_full['x_img_bounds'] = {
+    'w': -0.151872,
+    'e': 0.151872
+}
+
+
 goeswest_full = goesr_full.copy()
 goestest_full = goesr_full.copy()
 
@@ -49,6 +60,16 @@ goeseast_conus.update({
     'center_EW': -0.031360,
     'center_NS': 0.086240,
 })
+
+goeseast_conus['y_img_bounds'] = {
+    'n': 0.128240,
+    's': 0.044240
+}
+
+goeseast_conus['x_img_bounds'] = {
+    'w': -0.101360,
+    'e': 0.038640
+}
 
 
 goeswest_conus = goesr_conus.copy()
@@ -124,13 +145,22 @@ def get_GOESR_grid(position='east', view='full', resolution='2.0'):
 
 
 if __name__ == '__main__':
-    geofixcs, grs80lla = get_GOESR_coordsys()
-    print(geofixcs.fixedgrid)
-    print('-----------------------------------------')
-    print(grs80lla)
+    # geofixcs, grs80lla = get_GOESR_coordsys()
+    # print(geofixcs.fixedgrid)
+    # print('-----------------------------------------')
+    # print(grs80lla)
+
     # for pos in ['east', 'west', 'test']:
     #     for view in ['full', 'conus', 'meso']:
     #         for resolution in ['0.5', '1.0', '2.0', '4.0', '8.0', '10.0']:
     #             print('-----\n', pos, view, resolution)
     #             for k, v in get_GOESR_grid(pos, view, resolution).items():
     #                 print(k, v)
+    import numpy as np
+
+    view = get_GOESR_grid('east', 'full', '8.0')
+    y = np.linspace(view['y_img_bounds']['s'], view['y_img_bounds']['n'], view['pixels_NS'])
+    x = np.linspace(view['x_img_bounds']['w'], view['x_img_bounds']['e'], view['pixels_EW'])
+
+    print(y.shape)
+    print(x.shape)
