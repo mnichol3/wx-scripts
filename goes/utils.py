@@ -281,9 +281,10 @@ def read_file_glm(abs_path, product='f', window=False):
     file_type_re = r'(\w{4}\d{2}_KNES)'
 
     if (re.match(abs_path, file_type_re)):
-        _read_file_glm_fed(abs_path, window=window)
+        glm_file = _read_file_glm_fed(abs_path, window=window)
     else:
-        _read_file_glm_egf(abs_path, product=product)
+        glm_file =_read_file_glm_egf(abs_path, product=product)
+    return glm_file
 
 
 
