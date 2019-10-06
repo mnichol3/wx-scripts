@@ -531,11 +531,11 @@ def main():
     df = track_shp_to_df(shp_path)
     df = interp_track_df(df, interp_freq)
 
-    if (prnt):
-        print(df)
-
-    if (write):
-        track_df_to_csv(df, interp_dict[interp_freq])
+    # if (prnt):
+    #     print(df)
+    #
+    # if (write):
+    #     track_df_to_csv(df, interp_dict[interp_freq])
     #
     # if (pp):
     #     pp_df(df)
@@ -545,9 +545,9 @@ def main():
     ############################################################################
     ####################### Plotting Defs & Func Calls #########################
     ############################################################################
-    # extent = [5.935, 40.031, -88.626, -40.285]
+    extent = [5.935, 40.031, -88.626, -40.285]
     # # plot_track(shp_path, meta['storm_name'], meta['year'], extent=extent)
-    # plot_track_from_df(df, meta['storm_name'], meta['year'], extent=extent, show=True, save=False, outpath=None)
+    plot_track_from_df(df, meta['storm_name'], meta['year'], extent=extent, show=True, save=False, outpath=None)
 
 
 

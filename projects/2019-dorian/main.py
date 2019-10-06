@@ -8,7 +8,7 @@ from dorian_sort_lightning import process_flashes, total_flashes_by_hour, plot_f
 from glm_utils import read_file_glm_egf
 from localglmfile import LocalGLMFile
 
-
+from dorian_sort_lightning import geodesic_point_buffer, get_quadrant_coords
 
 def pp_flashes(flashes):
     print('######################### NE Flashes #########################')
@@ -138,8 +138,27 @@ def main():
 
     # flash_count_df = pd.read_csv(fname_hourly_totals, sep=',', header=0)
     # print(flash_count_df)
-    
-    plot_flashes_vs_intensity(fname_hourly_totals, track_path_60min)
+
+    # plot_flashes_vs_intensity(fname_hourly_totals, track_path_60min)
+    buff = geodesic_point_buffer(25.8, -72.55, 450)
+    quad_coords = get_quadrant_coords(buff)
+
+    n = quad_coords['n']
+    s = quad_coords['s']
+    e = quad_coords['e']
+    w = quad_coords['w']
+
+    d_lat = n[0] - s[0]
+    d_lon = abs(w[1] - e[1])
+
+    print('d_lat: {:.3f}'.format(d_lat))
+    print('d_lon: {:.3f}'.format(d_lon))
+
+    print('lat bin: {:.3f}'.format(d_lat / 0.25))
+    print('lon bin: {:.3f}'.format(d_lon / 0.25))
+
+    # for key, val in quad_coords.items():
+    #     print(key, val)
 
 
 
