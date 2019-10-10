@@ -1,17 +1,33 @@
 parse_desc = """ Download GOES-16 loop images from NASA MSFC
 (weather.msfc.nasa.gov)
 
-Example usage:
+Example usage
+--------------
 
-> python msfc_goes.py -d -i /path/to/filenames.txt -o /path/to/dir
 This will download the images specified in filenames.txt to the directory
-specified by /path/to/dir
+specified by /path/to/dir:
+> python msfc_goes.py -d -i /path/to/filenames.txt -o /path/to/dir
+
+The following will process already-downloaded image files:
+> python msfc_goes.py -i /home/mnichol3/Pictures/wx/2019-10-10/2/f_names.txt -o /home/mnichol3/Pictures/wx/2019-10-10/2
 
 IMPORTANT!!!
 Must be used quickly after obtaining the list of image filenames as the images
 aren't saved on the server for long
 
 Author: Matt Nicholson
+"""
+
+"""
+Input filename file format
+---------------------------
+Just copy the list of partial image paths & names from the
+NASA/MSFC Interactive GOES Data Selector image loop html source
+
+(i.e.,
+<body onload="setup(['/goes/abi/dynamic/GANIMslfJt21.jpg','/goes/abi/dynamic/GANIMslfJt22.jpg,...)
+
+--> '/goes/abi/dynamic/GANIMslfJt21.jpg','/goes/abi/dynamic/GANIMslfJt22.jpg,...
 """
 import os
 import re
@@ -81,7 +97,7 @@ def renum_images(dir_path, img_num_key):
                 # Rename the image file
                 shutil.move(dir_old, dir_new)
 
-                print('{} renamed as {}'.format(f, new_fname))
+                print('{} renamed as {}'.format(f.ljust(17), new_fname))
 
 
 
