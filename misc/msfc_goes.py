@@ -75,14 +75,14 @@ def renum_images(dir_path, img_num_key):
     img_num_re = re.compile(img_num_re)
 
     for f in os.listdir(dir_path):
-        if (f.split('.') != 'txt'):           # ignore text file holding filenames
-            match = img_num_re.search(f)      # Get the image number from the file name
+        if (f.split('.')[1] != 'txt'):           # ignore text file holding filenames
+            match = img_num_re.search(f)         # Get the image number from the file name
 
             if (match):
                 img_num = match.group(1)
 
                 # Add padding zero to image number if applicable
-                new_img_num = img_num.zfill(2)
+                new_img_num = img_num.zfill(3)
 
                 # Construct the original absolute path for the image file
                 dir_old = os.path.join(dir_path, f)
