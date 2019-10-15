@@ -1,0 +1,1 @@
+{'distance': 3000.0, 'mask_length': 6, 'stations': (6, 99), 'chi2': (0, 1.0), 'ctr_lon': -101.5, 'thresh_duration': 3.0, 'ctr_lat': 33.5, 'thresh_critical_time': 0.15}

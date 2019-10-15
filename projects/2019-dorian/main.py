@@ -2,6 +2,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import sys
+import os
+import glob
 
 from nhc_gis_track import track_csv_to_df, pp_df
 from dorian_sort_lightning import process_flashes, total_flashes_by_hour, plot_flashes_vs_intensity
@@ -113,6 +115,51 @@ def run_process_flashes(track_path, glm_path, flash_out_paths):
 
 
 
+def get_fed_files(base_path):
+    from localflashextentfile import LocalFlashExtentFile
+    ############################################################################
+    #### Get the names of the Flash Extent NetCDF files produced by glmtools ###
+    ############################################################################
+    total_f_count = 0
+    for subdir in os.listdir(base_path):
+        curr_dir = os.path.join(base_path, subdir)
+        for hr in os.listdir(curr_dir):
+            curr_hr = os.path.join(curr_dir, hr)
+            abs_path = '{}/{}'.format(curr_hr, '*_flash_extent.nc')
+
+            for file in glob.glob(abs_path):
+                curr_FE_file = LocalFlashExtentFile(file)
+                print(curr_FE_file)
+                total_f_count += 1
+
+    print('--- {} total GLM FE files present ---'.format(total_f_count))
+
+
+
+def check_data_coverage(base_path):
+    total_f_count = 0
+    for subdir in os.listdir(base_path):
+        curr_dir = os.path.join(base_path, subdir)
+        for hr in os.listdir(curr_dir):
+            curr_hr = os.path.join(curr_dir, hr)
+            abs_path = '{}/{}'.format(curr_hr, '*_flash_extent.nc')
+            f_count = 0
+            for file in glob.glob(abs_path):
+                f_count += 1
+                total_f_count += 1
+
+            short_dir = curr_hr.split('/', 9)[-1]
+            if (f_count != 60):
+                bad_msg = '!!! {} is bad, {}/60 FE files present (missing {})'
+                bad_msg = bad_msg.format(short_dir, f_count, 60 - f_count)
+                print(bad_msg)
+            else:
+                # print('    {} is ok, {}/60 FE files present'.format(short_dir, f_count))
+                print('    {} is ok'.format(short_dir))
+    print('--- {} total GLM FE files present ---'.format(total_f_count))
+
+
+
 
 def main():
     track_path_1min = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_1min.txt'
@@ -126,39 +173,36 @@ def main():
     fname_hourly_totals = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/flash_stats/hourly_totals.txt'
 
     glm_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/aws'
+    glm_gridded_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded'
 
-    flash_paths = {'ne': fname_flashes_ne,
-                   'nw': fname_flashes_nw,
-                   'sw': fname_flashes_sw,
-                   'se': fname_flashes_se}
+    # flash_paths = {'ne': fname_flashes_ne,
+    #                'nw': fname_flashes_nw,
+    #                'sw': fname_flashes_sw,
+    #                'se': fname_flashes_se}
+    #
+    # # run_process_flashes(track_path_1min, glm_path, flash_paths)
+    # # total_flashes_by_hour(flash_paths, write=True, outpath=fname_hourly_totals)
+    # # total_flashes_by_hour(flash_paths, pp=True)
+    #
+    # # flash_count_df = pd.read_csv(fname_hourly_totals, sep=',', header=0)
+    # # print(flash_count_df)
+    #
+    # # plot_flashes_vs_intensity(fname_hourly_totals, track_path_60min)
+    # buff = geodesic_point_buffer(25.8, -72.55, 450)
+    # quad_coords = get_quadrant_coords(buff)
+    #
+    # n = quad_coords['n']
+    # s = quad_coords['s']
+    # e = quad_coords['e']
+    # w = quad_coords['w']
 
-    # run_process_flashes(track_path_1min, glm_path, flash_paths)
-    # total_flashes_by_hour(flash_paths, write=True, outpath=fname_hourly_totals)
-    # total_flashes_by_hour(flash_paths, pp=True)
+    ############################################################################
+    #### Get the names of the Flash Extent NetCDF files produced by glmtools ###
+    ############################################################################
+    get_fed_files(glm_gridded_path)
+    # check_data_coverage(glm_gridded_path)
 
-    # flash_count_df = pd.read_csv(fname_hourly_totals, sep=',', header=0)
-    # print(flash_count_df)
 
-    # plot_flashes_vs_intensity(fname_hourly_totals, track_path_60min)
-    buff = geodesic_point_buffer(25.8, -72.55, 450)
-    quad_coords = get_quadrant_coords(buff)
-
-    n = quad_coords['n']
-    s = quad_coords['s']
-    e = quad_coords['e']
-    w = quad_coords['w']
-
-    d_lat = n[0] - s[0]
-    d_lon = abs(w[1] - e[1])
-
-    print('d_lat: {:.3f}'.format(d_lat))
-    print('d_lon: {:.3f}'.format(d_lon))
-
-    print('lat bin: {:.3f}'.format(d_lat / 0.25))
-    print('lon bin: {:.3f}'.format(d_lon / 0.25))
-
-    # for key, val in quad_coords.items():
-    #     print(key, val)
 
 
 

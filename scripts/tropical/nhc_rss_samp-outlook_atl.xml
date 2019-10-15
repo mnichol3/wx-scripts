@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<rss version="2.0" xmlns:dc="https://purl.org/dc/elements/1.1/">
+<channel>
+<pubDate>Sun, 01 Sep 2019 17:35:56 +0000</pubDate>
+<lastBuildDate>Sun, 01 Sep 2019 17:35:56 +0000</lastBuildDate>
+<title>Atlantic Tropical Weather Outlook</title>
+<description>National Hurricane Center - Atlantic Tropical Weather Outlook</description>
+<link>https://www.nhc.noaa.gov/</link>
+<copyright>none</copyright>
+<managingEditor>nhcwebmaster@noaa.gov (nhcwebmaster)</managingEditor>
+<language>en-us</language>
+<webMaster>nhcwebmaster@noaa.gov (nhcwebmaster)</webMaster>
+<image>
+<url>https://www.nhc.noaa.gov/gifs/xml_logo_nhc.gif</url>
+<link>https://www.nhc.noaa.gov/</link>
+<description>NOAA logo</description>
+<title>Atlantic Tropical Weather Outlook</title>
+<width>95</width>
+<height>45</height>
+</image>
+<item>
+<title>Atlantic Tropical Weather Outlook</title>
+<description>
+<![CDATA[ <br />
+ 000<br />
+ ABNT20 KNHC 011735<br />
+ TWOAT <br />
+ <br />
+ Tropical Weather Outlook<br />
+ NWS National Hurricane Center Miami FL<br />
+ 200 PM EDT Sun Sep 1 2019<br />
+ <br />
+ For the North Atlantic...Caribbean Sea and the Gulf of Mexico:<br />
+ <br />
+ The National Hurricane Center is issuing advisories on Hurricane<br />
+ Dorian, located over the Abacos Islands.<br />
+ <br />
+ A broad area of low pressure centered near the Cabo Verde Islands is<br />
+ producing a large area of showers and thunderstorms. This system is<br />
+ showing signs of becoming better organized, and environmental<br />
+ conditions appear conducive for additional development during the<br />
+ next several days. A tropical depression is likely to form by the<br />
+ middle of the week while the system moves generally northwestward<br />
+ across the eastern tropical Atlantic Ocean. Heavy rainfall is<br />
+ possible over portions of the southern Cabo Verde Islands during the<br />
+ next day or so, and interests on those islands should monitor the<br />
+ progress of this system.<br />
+ * Formation chance through 48 hours...medium...60 percent.<br />
+ * Formation chance through 5 days...high...70 percent.<br />
+ <br />
+ Another broad area of low pressure is located over the south-central<br />
+ Gulf of Mexico. This disturbance continues to produce widespread<br />
+ disorganized showers. Some gradual development of this system is<br />
+ possible during the next few days while it moves slowly westward<br />
+ across the southern and southwestern Gulf of Mexico toward the coast<br />
+ of Mexico.<br />
+ * Formation chance through 48 hours...low...20 percent.<br />
+ * Formation chance through 5 days...low...30 percent.<br />
+ <br />
+ A trough of low pressure is located several hundred miles<br />
+ south-southeast of Bermuda.  Although the associated shower and<br />
+ thunderstorm activity is showing some signs of organization, the<br />
+ system does not currently have a closed surface circulation. Some<br />
+ gradual development of this disturbance is possible during the next<br />
+ few days while it moves slowly northward or north-northwestward.<br />
+ * Formation chance through 48 hours...low...10 percent.<br />
+ * Formation chance through 5 days...low...30 percent.<br />
+ <br />
+ $$<br />
+ Forecaster Zelinsky<br />
+ ]]>
+</description>
+<pubDate>Sun, 01 Sep 2019 17:35:56 +0000</pubDate>
+<link>https://www.nhc.noaa.gov/gtwo.php?basin=atlc</link>
+<guid>201909011735</guid>
+<author>nhcwebmaster@noaa.gov (nhcwebmaster)</author>
+</item>
+</channel>
+</rss>

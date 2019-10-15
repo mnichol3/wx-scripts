@@ -1,0 +1,14 @@
+ART - Watertown Intl 
+FZY - Oswego County Airport
+SDC - Williamson
+ROC - Rochester/Monroe Co
+BUF - Buffalo Intl
+GVQ - Batavia
+DKK - Dunkirk Airport
+DSV - Dansville Municipal
+IAG - Niagara Falls Intl
+
+Source:
+
+https://mesonet.agron.iastate.edu/request/download.phtml?network=NY_ASOS
+

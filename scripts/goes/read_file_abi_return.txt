@@ -1,0 +1,28 @@
+wx-scripts/goes/utils.read_file_abi() return dict key names & value types
+---------------------------------------------------------------------------
+min_data_val: 		<class 'numpy.ma.core.MaskedArray'>
+max_data_val: 		<class 'numpy.ma.core.MaskedArray'>
+band_id: 		<class 'numpy.ma.core.MaskedArray'>
+band_wavelength:	<class 'str'>
+semimajor_ax:		<class 'numpy.float64'>
+semiminor_ax: 		<class 'numpy.float64'>
+inverse_flattening:	<class 'numpy.float64'>
+data_units: 		<class 'str'>
+lat_center: 		<class 'numpy.float32'>
+lon_center: 		<class 'numpy.float32'>
+y_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
+x_image_bounds: 	<class 'numpy.ma.core.MaskedArray'>
+scan_date: 		<class 'str'>
+sector: 		<class 'str'>
+product: 		<class 'str'>
+sat_height: 		<class 'numpy.float64'>
+sat_lon: 		<class 'numpy.float64'>
+sat_lat: 		<class 'numpy.float64'>
+lat_lon_extent: 	<class 'dict'>
+sat_sweep: 		<class 'str'>
+data: 			<class 'numpy.ma.core.MaskedArray'>
+y_min: 			<class 'float'>
+x_min: 			<class 'float'>
+y_max: 			<class 'float'>
+x_max: 			<class 'float'>
+

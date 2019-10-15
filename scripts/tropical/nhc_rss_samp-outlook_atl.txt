@@ -1,0 +1,49 @@
+Atlantic Tropical Weather Outlook
+ 
+ 000
+ ABNT20 KNHC 011735
+ TWOAT 
+ 
+ Tropical Weather Outlook
+ NWS National Hurricane Center Miami FL
+ 200 PM EDT Sun Sep 1 2019
+ 
+ For the North Atlantic...Caribbean Sea and the Gulf of Mexico:
+ 
+ The National Hurricane Center is issuing advisories on Hurricane
+ Dorian, located over the Abacos Islands.
+ 
+ A broad area of low pressure centered near the Cabo Verde Islands is
+ producing a large area of showers and thunderstorms. This system is
+ showing signs of becoming better organized, and environmental
+ conditions appear conducive for additional development during the
+ next several days. A tropical depression is likely to form by the
+ middle of the week while the system moves generally northwestward
+ across the eastern tropical Atlantic Ocean. Heavy rainfall is
+ possible over portions of the southern Cabo Verde Islands during the
+ next day or so, and interests on those islands should monitor the
+ progress of this system.
+ * Formation chance through 48 hours...medium...60 percent.
+ * Formation chance through 5 days...high...70 percent.
+ 
+ Another broad area of low pressure is located over the south-central
+ Gulf of Mexico. This disturbance continues to produce widespread
+ disorganized showers. Some gradual development of this system is
+ possible during the next few days while it moves slowly westward
+ across the southern and southwestern Gulf of Mexico toward the coast
+ of Mexico.
+ * Formation chance through 48 hours...low...20 percent.
+ * Formation chance through 5 days...low...30 percent.
+ 
+ A trough of low pressure is located several hundred miles
+ south-southeast of Bermuda.  Although the associated shower and
+ thunderstorm activity is showing some signs of organization, the
+ system does not currently have a closed surface circulation. Some
+ gradual development of this disturbance is possible during the next
+ few days while it moves slowly northward or north-northwestward.
+ * Formation chance through 48 hours...low...10 percent.
+ * Formation chance through 5 days...low...30 percent.
+ 
+ $$
+ Forecaster Zelinsky
+ 

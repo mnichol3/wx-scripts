@@ -168,16 +168,20 @@ def grid_flash_chunk(start_date, end_date, track_df):
         cmd = cmd.format(make_grid_path, outpath, ' '.join(curr_fnames),
                          curr_dt.isoformat(), next_dt.isoformat(), lat, lon,
                          2500.0, 2500.0)
-        # try except(pass) here?
-        out_bytes = subprocess.check_output(cmd.split())
+        try:
+            out_bytes = subprocess.check_output(cmd.split())
+        except:
+            curr_dt = next_dt
+            next_dt = next_dt + timedelta(seconds=60)
+        else:
 
-        grid_dir_base = outpath
-        nc_files = glob.glob(os.path.join(grid_dir_base, curr_dt.strftime('%j/%H'),'*.nc'))
-        # for f in nc_files:
-        #     print(f)
+            grid_dir_base = outpath
+            nc_files = glob.glob(os.path.join(grid_dir_base, curr_dt.strftime('%j/%H'),'*.nc'))
+            # for f in nc_files:
+            #     print(f)
 
-        curr_dt = next_dt
-        next_dt = next_dt + timedelta(seconds=60)
+            curr_dt = next_dt
+            next_dt = next_dt + timedelta(seconds=60)
 
 
 
@@ -232,8 +236,8 @@ def main():
     num_threads = 3
 
     # start_date = datetime(2019, 8, 24, 12, 0)  # 24 Aug 2019 12:00z
-    start_date = datetime(2019, 8, 26, 12, 0)  # 24 Aug 2019 12:00z
-    end_date = datetime(2019, 8, 27, 12, 0)
+    start_date = datetime(2019, 8, 27, 12, 0)  # 24 Aug 2019 12:00z
+    end_date = datetime(2019, 9, 9, 0, 0)
     # end_date = datetime(2019, 9, 9, 0, 0)      # 09 Sep 2019 00:00z
 
     # Read 60-min interpolated track dataframe and change its index from str

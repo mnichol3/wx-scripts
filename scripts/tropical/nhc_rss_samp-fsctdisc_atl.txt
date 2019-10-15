@@ -1,0 +1,93 @@
+Atlantic Hurricane Dorian Discussion Number 33 
+ 
+ 000
+ WTNT45 KNHC 011457
+ TCDAT5
+ 
+ Hurricane Dorian Discussion Number  33
+ NWS National Hurricane Center Miami FL       AL052019
+ 1100 AM EDT Sun Sep 01 2019
+ 
+ Air Force and NOAA reconnaissance planes penetrated the distinct
+ eye of Dorian, and found that the hurricane has become extremely
+ intense with a stadium effect in the eye. The NOAA plane reported a
+ peak flight-level wind of 159 kt, while the SFMR from both planes
+ have measured winds between 155 and 170 kt.  A dropsonde from the
+ NOAA plane measured a wind gust of 176 kt at the surface. A blend of
+ these measurements yield to an initial intensity of 155 kt, making
+ Dorian the strongest hurricane on record in the northwestern
+ Bahamas.
+ 
+ For the next few days, Dorian should experience some fluctuations in
+ intensity, and in addition to eyewall replacement cyclone, the
+ interaction with the northwestern Bahamas should weaken the
+ hurricane slightly. After 3 days, as Dorian moves northward along
+ or offshore of southeast United States coast, the shear is forecast
+ to increase, resulting in a more distinct gradual weakening.
+ 
+ Reconnaissance plane and satellite fixes indicate that Dorian, as
+ anticipated, has slowed down and is moving toward the west or 270
+ degrees at 6 kt. The steering currents are collapsing and Dorian is
+ expected to slow down even more, prolonging its catastrophic effects
+ in the northwestern Bahamas. The NHC forecast calls for a slow west
+ to west-northwest motion during the next 48 hours, with a turn to
+ the north and an increase in forward speed as the mid-level trough
+ along the eastern United States deepens and becomes the dominant
+ steering feature. The current forecast is only a few miles west of
+ the previous one and is basically on top of the multi-model
+ consensus. Both the deterministic and consensus tracks have shown
+ the usual variability to the right or to the left from run to run,
+ but the overall trend is for the hurricane to turn northward
+ offshore but very close to the Florida peninsula.
+ 
+ Given the uncertainty in the track forecast and the anticipated
+ increase in size of the hurricane, a Hurricane Watch and Storm
+ Surge Watch have been issued for a portion of the east Florida
+ coast. It is emphasized that although the official track forecast
+ does not show landfall, users should not focus on the exact track. A
+ small deviation to the left of the track could bring the intense
+ core of the hurricane its dangerous winds closer to or onto the
+ coast.
+ 
+ Key Messages:
+ 
+ 1. A prolonged period of catastrophic winds and storm surge will
+ affect the Abaco Islands today. Everyone there should take immediate
+ shelter and not venture into the eye. These catastrophic conditions
+ are likely on Grand Bahama Island later today or tonight, and
+ efforts to protect life and property there should be rushed to
+ completion.
+ 
+ 2. Storm surge and hurricane watches and tropical storm warnings are
+ in effect for portions of the Florida east coast. Life-threatening
+ storm surge and dangerous hurricane-force winds are possible along
+ portions of the Florida east coast through mid-week, as only a
+ slight deviation to the left of the official forecast would bring
+ the core of Dorian near or over the coast. Residents should listen
+ to advice given by local emergency officials.
+ 
+ 3. There is an increasing likelihood of strong winds and dangerous
+ storm surge along the coasts of Georgia, South Carolina, and North
+ Carolina later this week. Residents in these areas should continue
+ to monitor the progress of Dorian.
+ 
+ 4. Heavy rains, capable of producing life-threatening flash floods,
+ are possible over northern portions of the Bahamas and coastal
+ sections of the southeast and lower mid-Atlantic regions of the
+ United States through late this week.
+ 
+ FORECAST POSITIONS AND MAX WINDS
+ 
+ INIT  01/1500Z 26.5N  76.8W  155 KT 180 MPH
+  12H  02/0000Z 26.6N  77.7W  150 KT 175 MPH
+  24H  02/1200Z 26.8N  78.5W  145 KT 165 MPH
+  36H  03/0000Z 27.0N  79.0W  135 KT 155 MPH
+  48H  03/1200Z 27.4N  79.4W  120 KT 140 MPH
+  72H  04/1200Z 29.7N  80.2W  100 KT 115 MPH
+  96H  05/1200Z 32.5N  79.0W   85 KT 100 MPH
+ 120H  06/1200Z 35.5N  74.5W   80 KT  90 MPH
+ 
+ $$
+ Forecaster Avila
+ 
+ 

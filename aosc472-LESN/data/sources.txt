@@ -1,5 +1,0 @@
-Snow data:
-www.nohrsc.noaa.gov/snowfall/
-
-Asos data:
-mesonet.agron.iastate.edu
