@@ -106,6 +106,7 @@ _scantime_in_range(start_dt, end_dt, scan_dt)
 """
 from os import listdir
 from os.path import isfile, join
+from os.path import split as os_split
 import pyproj
 import numpy as np
 from netCDF4 import Dataset
@@ -125,11 +126,58 @@ import re
 from shapely.geometry.polygon import Polygon
 from shapely.geometry import Point
 import time
+from shutil import unpack_archive
 
 from localglmfile import LocalGLMFile
 from proj_utils import geod_to_scan, scan_to_geod
 
 from sys import exit
+
+
+
+def untar(dir_path, dest_path):
+    """
+    Unpack a gzip TAR archive located in the 'dir_path' directory into the
+    'dest_path' directory
+
+    Parameters
+    ----------
+    dir_path : str
+        Path of the directory holding the archived files
+    dest_path : str
+        Path of the directory to unpack the archived files into
+
+    Returns
+    -------
+    unpacked_files : list of str
+        List of absolute paths (including filenames) of the unpacked files
+
+        NOTE: IF the files are GLM FED files from the lightning.umd.edu server,
+              they will not have a file extension and they must be passed to
+              trim_header() before they can be read by netCDF4.Dataset()
+
+    Dependencies
+    ------------
+    > shutil.unpack_archive (from shutil import unpack_archive)
+    > os.listdir            (from os import listdir)
+    > os.path.isfile        (from os.path import isfile)
+    > os.path.join          (from os.path import join)
+    """
+    # from shutil import unpack_archive
+    # from os import listdir
+    # from os.path import isfile, join
+
+    unpacked_files = []
+
+    for f_name in listdir(dir_path):
+        if (f_name.split('.')[1] == 'tgz'):
+            print('Unpacking {} to {}'.format(f_name, dest_path))
+            f_abs = join(dir_path, f_name)
+            # dest_abs = join(dest_path, f_name)
+            unpack_archive(f_abs, dest_path, 'gztar')
+            unpacked_files.append(join(dest_path, f_name))
+    return unpacked_files
+
 
 
 def trim_header(abs_path):
@@ -150,11 +198,14 @@ def trim_header(abs_path):
     Dependencies
     ------------
     > os.path.isfile
+    > os.path.split
     """
     if (not isfile(abs_path)):
         raise OSError('File does not exist:', abs_path)
 
     if (not isfile(abs_path + '.nc') and abs_path[-3:] != '.nc'):
+        _, f_name = os_split(abs_path)
+        print('Processing {}'.format(f_name))
 
         with open(abs_path, 'rb') as f_in:
             f_in.seek(21)
