@@ -7,9 +7,16 @@ and Geostationary Lightning Mapper (GLM) files.
 
 Functions
 ---------
+untar(dir_path, dest_path)
+    Unpack a gzip TAR archive located in the 'dir_path' directory into the
+    'dest_path' directory
+
 trim_header(abs_path)
     Removes the header of an AWIPS-compatable GLM file specified by 'abs_path'
     and converts it to a netCDF
+
+trim_fed_files(parent_dir)
+    Wrapper for trim_header()
 
 get_fnames_from_dir(base_path, start=None, end=None)
     Gets a list of files located in the given directory. If 'start' and 'end' are
@@ -156,12 +163,12 @@ def untar(dir_path, dest_path):
               they will not have a file extension and they must be passed to
               trim_header() before they can be read by netCDF4.Dataset()
 
-    Dependencies
-    ------------
-    > shutil.unpack_archive (from shutil import unpack_archive)
-    > os.listdir            (from os import listdir)
-    > os.path.isfile        (from os.path import isfile)
-    > os.path.join          (from os.path import join)
+    Dependencies                            Alias
+    ------------                           -------
+    > shutil.unpack_archive     (from shutil import unpack_archive)
+    > os.listdir                (from os import listdir)
+    > os.path.isfile            (from os.path import isfile)
+    > os.path.join              (from os.path import join)
     """
     # from shutil import unpack_archive
     # from os import listdir
@@ -195,10 +202,10 @@ def trim_header(abs_path):
     abs_path : str
         Absolute path of the new file
 
-    Dependencies
-    ------------
-    > os.path.isfile
-    > os.path.split
+    Dependencies                    Alias
+    ------------                   -------
+    > os.path.isfile    (from os.path import isfile)
+    > os.path.split     (from os.path import split as os_split)
     """
     if (not isfile(abs_path)):
         raise OSError('File does not exist:', abs_path)
@@ -225,6 +232,39 @@ def trim_header(abs_path):
 
 
 
+def trim_fed_files(parent_dir):
+    """
+    Wrapper function for trim_header()
+
+    Parameters
+    ----------
+    parent_dir : str
+        Path of the directory holding all of the FED subdirectories
+
+    Returns
+    -------
+    fnames : list of str
+        List of absolute paths of the trimmed FED netCDF files
+
+    Dependencies                       Alias
+    ------------                      -------
+    > os.listdir                (from os import listdir)
+    > os.path.join              (from os.path import join)
+    > /goes/utils.trim_header
+    """
+    fnames = []
+    for d in listdir(parent_dir):
+        curr_date = join(parent_dir, d)
+
+        for f in listdir(curr_date):
+            curr_f = join(curr_date, f)
+            new_fname = trim_header(curr_f)
+            fnames.append(new_fname)
+
+    return fnames
+
+
+
 def get_fnames_from_dir(base_path, start=None, end=None):
     """
     Get a list of the imagery files located in the base_path directory. If 'start'
@@ -247,11 +287,11 @@ def get_fnames_from_dir(base_path, start=None, end=None):
     fnames : list of str
         List of the filenames of the imagery files located in the base_path dir
 
-    Dependencies
-    ------------
-    > os.listdir
-    > os.path.isfile
-    > os.path.join
+    Dependencies                    Alias
+    ------------                   -------
+    > os.listdir            (from os import listdir)
+    > os.path.isfile        (from os.path import isfile)
+    > os.path.join          (from os.path import join)
     > datetime
     > re
     """
@@ -291,11 +331,11 @@ def fname_gen(base_path):
     -------
     yields a str
 
-    Dependencies
-    ------------
-    > os.listdir
-    > os.path.isfile
-    > os.path.join
+    Dependencies                    Alias
+    ------------                   -------
+    > os.listdir            (from os import listdir)
+    > os.path.isfile        (from os.path import isfile)
+    > os.path.join          (from os.path import join)
     """
     for f in listdir(base_path):
         if (isfile(join(base_path, f))):
@@ -328,6 +368,7 @@ def read_file_glm(abs_path, product='f', window=False):
     ------------
     > localglmfile.py
     > netCDF4.Dataset
+    > re
     """
     file_type_re = r'(\w{4}\d{2}_KNES)'
 
@@ -357,10 +398,11 @@ def _read_file_glm_fed(abs_path,  window=False):
     glm_obj : LocalGLMFile object
         LocalGLMFile object containing the data from the glm file
 
-    Dependencies
-    ------------
-    > localglmfile.py
-    > netCDF4.Dataset
+    Dependencies                            Alias
+    ------------                           --------
+    > localglmfile.py               (from localglmfile import LocalGLMFile)
+    > netCDF4.Dataset               (from netCDF4 import Dataset)
+    > /goes/utils.trim_header
     """
     data_dict = {}
 
@@ -414,10 +456,10 @@ def _read_file_glm_egf(abs_path, product='f'):
     glm_obj : LocalGLMFile object
         LocalGLMFile object containing the data from the glm file
 
-    Dependencies
-    ------------
-    > localglmfile.py
-    > netCDF4.Dataset
+    Dependencies                        Alias
+    ------------                       --------
+    > localglmfile.py       (from localglmfile import LocalGLMFile)
+    > netCDF4.Dataset       (from netCDF4 import Dataset)
     """
     data_dict = {}
 
@@ -521,7 +563,14 @@ def read_file_abi(abi_file, extent=None):
             y_max: 			    <class 'float'>
             x_max: 			    <class 'float'>
 
-
+    Dependencies                                     Alias
+    ------------                                    -------
+    > re                                              ---
+    > netCDF4.Dataset                     (from netCDF4 import Dataset)
+    > datetime.datetime                   (from datetime import datetime)
+    > datetime.timedelta                  (from datetime import timedelta)
+    > /goes/proj_utils.scan_to_geod       (from proj_utils import scan_to_geod)
+    > /goes/utils.subset_grid             (from utils import subset_grid)
     """
     data_dict = {}
     product_re = r'OR_ABI-L\d\w?-(\w{3,5})[CFM]\d?-M\d'
@@ -688,10 +737,10 @@ def georeference(x, y, sat_lon, sat_height, sat_sweep, data=None):
         Tuple containing a list of data longitude coordinates and a list of
         data latitude coordinates
 
-    Dependencies
-    ------------
-    > pyproj
-    > numpy
+    Dependencies              Alias
+    ------------             -------
+    > pyproj                  ---
+    > numpy             (import numpy as np)
     """
 
     Xs = [i * sat_height for i in x]
@@ -711,6 +760,25 @@ def georeference(x, y, sat_lon, sat_height, sat_sweep, data=None):
 
 
 def idx_of_nearest(coords, val):
+    """
+    Get the index of the array element nearest in value to the arg 'val' and
+    return the corresponding array element
+
+    Parameters
+    ----------
+    coords : numpy ndarray
+        Usually a 2D array representing a coordinate grid
+    val : int or float
+        Value of interest
+
+    Returns
+    -------
+    Element of the 'coords' array closest in value to 'val'
+
+    Dependencies                   Alias
+    ------------                  -------
+    numpy                   (import numpy as np)
+    """
     X = np.abs(coords.flatten()-val)
     idx = np.where(X == X.min())
     idx = idx[0][0]
