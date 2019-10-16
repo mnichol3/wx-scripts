@@ -36,6 +36,19 @@ def scan_to_geod(y, x):
         Tuple containing two floats; the first is the Geodetic Latitude (in deg.),
         the second is the Geodetic Longitude (in deg.)
         Format: (lat, lon)
+
+    Dependencies
+    ------------
+    > proj_utils._calc_a
+    > proj_utils._calc_b
+    > proj_utils._calc_c
+    > proj_utils._calc_rs
+    > proj_utils._calc_sx
+    > proj_utils._calc_sy
+    > proj_utils._calc_sz
+    > math.sqrt
+    > math.atan
+    > math.degrees
     """
     r_eq = 6378137          # semi major axis of projection, m
     inv_f = 298.257222096   # inverse flattening
@@ -99,6 +112,17 @@ def geod_to_scan(lat, lon):
     tuple of floats
         Tuple of two floats; the first is the N/S Elevation angle (in radians),
         the second is the E/W Elevation angle (in radians)
+
+    Dependencies
+    ------------
+    > proj_utils._calc_thetac
+    > proj_utils._calc_rc
+    > proj_utils._calc_sx_inv
+    > proj_utils._calc_sy_inv
+    > proj_utils._calc_sz_inv
+    > math.sqrt
+    > math.atan
+    > math.radians
     """
     r_eq = 6378137          # semi major axis of projection, m
     inv_f = 298.257222096   # inverse flattening
@@ -129,6 +153,10 @@ def geod_to_scan(lat, lon):
     return (y, x)
 
 
+################################################################################
+############################## Helper Functions ################################
+################################################################################
+
 
 def _calc_a(x, y, r_eq, r_pol):
     """
@@ -151,6 +179,11 @@ def _calc_a(x, y, r_eq, r_pol):
     Returns
     -------
     float
+
+    Dependencies
+    -------------
+    > math.sin
+    > math.cos
     """
     f = sin(x)**2 + cos(x)**2
     g = cos(y)**2 + (r_eq**2 / r_pol**2) * (sin(y)**2)
@@ -177,6 +210,10 @@ def _calc_b(x, y, H):
     Returns
     -------
     float
+
+    Dependencies
+    -------------
+    > math.cos
     """
     f = -2 * H * (cos(x)) * (cos(y))
     return f
@@ -198,6 +235,10 @@ def _calc_c(H, r_eq):
     Returns
     -------
     float
+
+    Dependencies
+    -------------
+    None
     """
     return (H**2 - r_eq**2)
 
@@ -221,6 +262,10 @@ def _calc_rs(a, b, c):
     -------
     float
         distance of the satellite from point P, in meters
+
+    Dependencies
+    -------------
+    > math.sqrt
     """
     try:
         num = -b - sqrt((b**2) - 4*a*c)
@@ -252,6 +297,10 @@ def _calc_sx(r_s, x, y):
     -------
     s_x : float
         x-axis of the satellite coordinate frame
+
+    Dependencies
+    -------------
+    > math.cos
     """
     s_x = r_s * cos(x) * cos(y)
     return s_x
@@ -274,6 +323,10 @@ def _calc_sy(r_s, x):
     -------
     s_y : float
         y-axis of the satellite coordinate frame
+
+    Dependencies
+    -------------
+    > math.sin
     """
     s_y = -r_s * sin(x)
     return s_y
@@ -299,6 +352,11 @@ def _calc_sz(r_s, x, y):
     -------
     s_z : float
         z-axis of the satellite coordinate frame
+
+    Dependencies
+    -------------
+    > math.sin
+    > math.cos
     """
     s_z = r_s * cos(x) * sin(y)
     return s_z
@@ -322,6 +380,11 @@ def _calc_thetac(r_eq, r_pol, lat):
     -------
     theta_c : float
         Geocentric latitude, in radians
+
+    Dependencies
+    -------------
+    > math.tan
+    > math.atan
     """
     theta_c = (r_pol**2) / (r_eq**2)
     theta_c = theta_c * tan(lat)
@@ -347,6 +410,11 @@ def _calc_rc(r_pol, e, theta_c):
     -------
     r_c : float
         Geocentric distance to the point on the ellipsoid, in meters
+
+    Dependencies
+    -------------
+    > math.sqrt
+    > math.cos
     """
     den = sqrt(1 - e**2 * cos(theta_c)**2)
     r_c = r_pol / den
@@ -375,6 +443,10 @@ def _calc_sx_inv(H, r_c, theta_c, lon, lambda_0):
     -------
     s_x : float
         X-axis of the satellite coordinate frame
+
+    Dependencies
+    -------------
+    > math.cos
     """
     s_x = H - (r_c * cos(theta_c) * cos(lon - lambda_0))
     return s_x
@@ -400,6 +472,11 @@ def _calc_sy_inv(r_c, theta_c, lon, lambda_0):
     -------
     s_y : float
         Y-axis of the satellite coordinate frame
+
+    Dependencies
+    -------------
+    > math.sin
+    > math.cos
     """
     s_y = -r_c * cos(theta_c) * sin(lon - lambda_0)
     return s_y
@@ -421,6 +498,10 @@ def _calc_sz_inv(r_c, theta_c):
     -------
     s_z : float
         Z-axis of the satellite coordinate frame
+
+    Dependencies
+    -------------
+    > math.sin
     """
     s_z = r_c * sin(theta_c)
     return s_z
