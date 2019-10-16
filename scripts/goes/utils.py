@@ -212,7 +212,7 @@ def trim_header(abs_path):
 
     if (not isfile(abs_path + '.nc') and abs_path[-3:] != '.nc'):
         _, f_name = os_split(abs_path)
-        print('Processing {}'.format(f_name))
+        print('Trimming {}'.format(f_name))
 
         with open(abs_path, 'rb') as f_in:
             f_in.seek(21)
