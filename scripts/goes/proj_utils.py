@@ -34,7 +34,9 @@ out:
     SE:  (28.846349046410847, -92.23420546721754)
 """
 
-from math import degrees, radians, atan, sin, cos, sqrt, tan
+from numpy import sin, cos, tan, arcsin, arctan, sqrt, degrees, radians, ndarray, asarray
+
+
 
 def scan_to_geod(y, x):
     """
@@ -57,18 +59,18 @@ def scan_to_geod(y, x):
         the second is the Geodetic Longitude (in deg.)
         Format: (lat, lon)
 
-    Dependencies
-    ------------
-    > proj_utils._calc_a
-    > proj_utils._calc_b
-    > proj_utils._calc_c
-    > proj_utils._calc_rs
-    > proj_utils._calc_sx
-    > proj_utils._calc_sy
-    > proj_utils._calc_sz
-    > math.sqrt
-    > math.atan
-    > math.degrees
+    Dependencies                              Alias
+    -------------                            -------
+    > proj_utils._calc_a                       ---
+    > proj_utils._calc_b                       ---
+    > proj_utils._calc_c                       ---
+    > proj_utils._calc_rs                      ---
+    > proj_utils._calc_sx                      ---
+    > proj_utils._calc_sy                      ---
+    > proj_utils._calc_sz                      ---
+    > numpy.sqrt                      (from numpy import sqrt)
+    > numpy.arctan                    (from numpy import arctan)
+    > numpy.degrees                   (from numpy import degrees)
 
     References
     -----------
@@ -100,9 +102,9 @@ def scan_to_geod(y, x):
 
     lat1 = (r_eq**2) / (r_pol**2)
     lat2 = s_z / (sqrt((H - s_x)**2 + s_y**2))
-    lat = atan(lat1 * lat2)
+    lat = arctan(lat1 * lat2)
 
-    lon1 = atan(s_y / (H - s_x))
+    lon1 = arctan(s_y / (H - s_x))
     lon = lambda_0 - lon1
 
     ################### For debugging ###################
@@ -140,16 +142,16 @@ def geod_to_scan(lat, lon):
         Tuple of two floats; the first is the N/S Elevation angle (in radians),
         the second is the E/W Elevation angle (in radians)
 
-    Dependencies
-    ------------
-    > proj_utils._calc_thetac
-    > proj_utils._calc_rc
-    > proj_utils._calc_sx_inv
-    > proj_utils._calc_sy_inv
-    > proj_utils._calc_sz_inv
-    > math.sqrt
-    > math.atan
-    > math.radians
+    Dependencies                              Alias
+    ------------                             -------
+    > proj_utils._calc_thetac                  ---
+    > proj_utils._calc_rc                      ---
+    > proj_utils._calc_sx_inv                  ---
+    > proj_utils._calc_sy_inv                  ---
+    > proj_utils._calc_sz_inv                  ---
+    > numpy.sqrt                      (from numpy import sqrt)
+    > numpy.arctan                    (from numpy import arctan)
+    > numpy.radians                   (from numpy import radians)
 
     References
     ----------
@@ -180,7 +182,7 @@ def geod_to_scan(lat, lon):
     s_y = _calc_sy_inv(r_c, theta_c, lon, lambda_0)
     s_z = _calc_sz_inv(r_c, theta_c)
 
-    y = atan(s_z / s_x)
+    y = arctan(s_z / s_x)
 
     x = -s_y / (sqrt(s_x**2 + s_y**2 + s_z**2))
 
@@ -209,8 +211,15 @@ def remove_glm_ellipse(lat, lon):
 
     Dependencies                    Alias
     ------------                   -------
-    > numpy                   (import numpy as np)
-
+    > numpy.radians         (from numpy import radians)
+    > numpy.asarray         (from numpy import asarray)
+    > numpy.ndarray         (from numpy import ndarray)
+    > numpy.sin             (from numpy import sin)
+    > numpy.cos             (from numpy import cos)
+    > numpy.tan             (from numpy import tan)
+    > numpy.arcsin          (from numpy import arcsin)
+    > numpy.arctan          (from numpy import arctan)
+    > numpy.sqrt            (from numpy import sqrt)
 
     References
     ----------
@@ -236,33 +245,46 @@ def remove_glm_ellipse(lat, lon):
     ff_grs = (re_grs80 - rp_grs80) / re_grs80   # GRS80 flattening factor
     ff_le =  (re_le - rp_le) / re_le            # GLM Lightning Ellipse flattening factor
 
+    # Validate the arguments
+    if (not isinstance(lon,  ndarray)):
+        if (isinstance(lon, float) or isinstance(lon, int)):
+            lon = asarray([lon])
+        else:
+            raise ValueError("'lon' arg must be a float, int, or numpy ndarray")
+
+    if (not isinstance(lat,  ndarray)):
+        if (isinstance(lat, float) or isinstance(lat, int)):
+            lat = asarray([lat])
+        else:
+            raise ValueError("'lat' arg must be a float, int, or numpy ndarray")
+
     delta_lon = lon - sat_lon_d
     delta_lon[delta_lon < -180] += 360
     delta_lon[delta_lon > 180] -= 360
 
-    lon_rad = np.radians(delta_lon)
-    lat_rad = np.radians(lat)
+    lon_rad = radians(delta_lon)
+    lat_rad = radians(lat)
 
     # Calculate the geocentric lat & lon
     lon_geocent = lon_rad
-    lat_geocent = np.arctan(np.tan(lat_rad) * (1.0 - ff_e)**2.0)
+    lat_geocent = arctan(tan(lat_rad) * (1.0 - ff_grs)**2.0)
 
-    cos_lat = np.cos(lat_geocent)
-    sin_lat = np.sin(lat_geocent)
+    cos_lat = cos(lat_geocent)
+    sin_lat = sin(lat_geocent)
 
     # Calculate the vector from the center of the lightning ellipse to a point
     # on the surface
     R_num = re_le * (1.0 - ff_le)
-    R_denom = np.sqrt(1.0 - ff_le * (2.0 - ff_le) * cos_lat**2)
+    R_denom = sqrt(1.0 - ff_le * (2.0 - ff_le) * cos_lat**2)
 
-    R_le = (p_num / p_denom)
+    R_le = (R_num / R_denom)
 
-    v_x = R_le * cos_lat * np.cos(lon_geocent) - sat_H
-    v_y = R_le * cos_lat * np.sin(lon_geocent)
+    v_x = R_le * cos_lat * cos(lon_geocent) - sat_H
+    v_y = R_le * cos_lat * sin(lon_geocent)
     v_z = R_le * sin_lat
 
     # Take the unit vector of V
-    v_mag = np.sqrt(v_x**2 + v_y**2 + v_z**2)
+    v_mag = sqrt(v_x**2 + v_y**2 + v_z**2)
     v_x /= v_mag
     v_y /= v_mag
     v_z /= v_mag
@@ -272,8 +294,8 @@ def remove_glm_ellipse(lat, lon):
     v_x *= -1
     v_y *= -1
 
-    alpha = np.arctan(v_z / v_x)
-    beta = -np.arcsin(v_y)
+    alpha = arctan(v_z / v_x)    # y-axis
+    beta = -arcsin(v_y)          # x-axis
 
     return alpha, beta
 
@@ -306,10 +328,10 @@ def _calc_a(x, y, r_eq, r_pol):
     -------
     float
 
-    Dependencies
-    -------------
-    > math.sin
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sin             (from numpy import sin)
+    > numpy.cos             (from numpy import cos)
     """
     f = sin(x)**2 + cos(x)**2
     g = cos(y)**2 + (r_eq**2 / r_pol**2) * (sin(y)**2)
@@ -337,9 +359,9 @@ def _calc_b(x, y, H):
     -------
     float
 
-    Dependencies
-    -------------
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.cos             (from numpy import cos)
     """
     f = -2 * H * (cos(x)) * (cos(y))
     return f
@@ -362,8 +384,8 @@ def _calc_c(H, r_eq):
     -------
     float
 
-    Dependencies
-    -------------
+    Dependencies                    Alias
+    -------------                  -------
     None
     """
     return (H**2 - r_eq**2)
@@ -389,9 +411,9 @@ def _calc_rs(a, b, c):
     float
         distance of the satellite from point P, in meters
 
-    Dependencies
-    -------------
-    > math.sqrt
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sqrt           (from numpy import sqrt)
     """
     try:
         num = -b - sqrt((b**2) - 4*a*c)
@@ -424,9 +446,9 @@ def _calc_sx(r_s, x, y):
     s_x : float
         x-axis of the satellite coordinate frame
 
-    Dependencies
-    -------------
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.cos             (from numpy import cos)
     """
     s_x = r_s * cos(x) * cos(y)
     return s_x
@@ -450,9 +472,9 @@ def _calc_sy(r_s, x):
     s_y : float
         y-axis of the satellite coordinate frame
 
-    Dependencies
-    -------------
-    > math.sin
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sin             (from numpy import sin)
     """
     s_y = -r_s * sin(x)
     return s_y
@@ -479,10 +501,10 @@ def _calc_sz(r_s, x, y):
     s_z : float
         z-axis of the satellite coordinate frame
 
-    Dependencies
-    -------------
-    > math.sin
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sin             (from numpy import sin)
+    > numpy.cos             (from numpy import cos)
     """
     s_z = r_s * cos(x) * sin(y)
     return s_z
@@ -507,14 +529,14 @@ def _calc_thetac(r_eq, r_pol, lat):
     theta_c : float
         Geocentric latitude, in radians
 
-    Dependencies
-    -------------
-    > math.tan
-    > math.atan
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.tan             (from numpy import tan)
+    > numpy.arctan          (from numpy import arctan)
     """
     theta_c = (r_pol**2) / (r_eq**2)
     theta_c = theta_c * tan(lat)
-    theta_c = atan(theta_c)
+    theta_c = arctan(theta_c)
     return theta_c
 
 
@@ -537,10 +559,10 @@ def _calc_rc(r_pol, e, theta_c):
     r_c : float
         Geocentric distance to the point on the ellipsoid, in meters
 
-    Dependencies
-    -------------
-    > math.sqrt
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sqrt            (from numpy import sqrt)
+    > numpy.cos             (from numpy import cos)
     """
     den = sqrt(1 - e**2 * cos(theta_c)**2)
     r_c = r_pol / den
@@ -570,9 +592,9 @@ def _calc_sx_inv(H, r_c, theta_c, lon, lambda_0):
     s_x : float
         X-axis of the satellite coordinate frame
 
-    Dependencies
-    -------------
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.cos             (from numpy import cos)
     """
     s_x = H - (r_c * cos(theta_c) * cos(lon - lambda_0))
     return s_x
@@ -599,10 +621,10 @@ def _calc_sy_inv(r_c, theta_c, lon, lambda_0):
     s_y : float
         Y-axis of the satellite coordinate frame
 
-    Dependencies
-    -------------
-    > math.sin
-    > math.cos
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sin             (from numpy import sin)
+    > numpy.cos             (from numpy import cos)
     """
     s_y = -r_c * cos(theta_c) * sin(lon - lambda_0)
     return s_y
@@ -625,9 +647,9 @@ def _calc_sz_inv(r_c, theta_c):
     s_z : float
         Z-axis of the satellite coordinate frame
 
-    Dependencies
-    -------------
-    > math.sin
+    Dependencies                    Alias
+    -------------                  -------
+    > numpy.sin             (from numpy import sin)
     """
     s_z = r_c * sin(theta_c)
     return s_z
@@ -642,11 +664,45 @@ def _calc_sz_inv(r_c, theta_c):
 
 
 def main():
-    # print('NW: ', scan_to_geod(0.11088, -0.0728))
-    # print('NE: ', scan_to_geod(0.11088, -0.0448))
-    # print('SW: ', scan_to_geod(0.08288, -0.0728))
-    # print('SE: ', scan_to_geod(0.08288, -0.0448))
-    # remove_glm_ellipse()
+    alpha = 0.08288
+    beta = -0.0448
+
+    lat, lon = scan_to_geod(alpha, beta)
+
+    print('-'*30)
+    print('Raw:')
+    print('     alpha: {0:.5f}'.format(alpha))
+    print('     beta: {0:.5f}'.format(beta))
+    print('     lat:   {0:.5f}'.format(lat))
+    print('     lon:  {0:.5f}'.format(lon))
+
+    alpha, beta = remove_glm_ellipse(lat, lon)
+    lat, lon = scan_to_geod(alpha, beta)
+
+    print('-'*30)
+    print('Corrected:')
+    print('     alpha: {0:.5f}'.format(alpha[0]))
+    print('     beta: {0:5f}'.format(beta[0]))
+    print('     lat:   {0:.5f}'.format(lat))
+    print('     lon:  {0:.5f}'.format(lon))
+    print('-'*30)
+
+    """
+    Output:
+    ------------------------------
+    Raw:
+        alpha: 0.08288
+        beta: -0.0448
+        lat: 28.846349046410847
+        lon: -92.23420546721754
+    ------------------------------
+    Corrected:
+         alpha: 0.08306
+         beta: -0.044897
+         lat: 28.919735289856177
+         lon: -92.28812036958603
+    ------------------------------
+    """
 
 
 if __name__ == '__main__':
