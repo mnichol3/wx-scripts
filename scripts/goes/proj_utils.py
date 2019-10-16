@@ -12,6 +12,26 @@ United States, Congress, National Oceanic & Atmospheric Administration.
     “GOES R Series Product Definition and User's Guide.”
     GOES R Series Product Definition and User's Guide, 2nd ed., vol. 3,
     Harris Corporation, 2018, pp. 56–60.
+
+
+Example usage
+--------------
+in : print(geod_to_scan(48.0563, -70.1242))
+out: (0.12390027294128181, 0.00950246171751412)
+
+in : print(geod_to_scan(33.943546, -84.52599))
+out: (0.09557181243071429, -0.023614853364253407)
+
+in:
+    print('NW: ', scan_to_geod(0.11088, -0.0728))
+    print('NE: ', scan_to_geod(0.11088, -0.0448))
+    print('SW: ', scan_to_geod(0.08288, -0.0728))
+    print('SE: ', scan_to_geod(0.08288, -0.0448))
+out:
+    NW:  (42.324332772441274, -111.59881367398036)
+    NE:  (41.3977345174855, -95.77874169810512)
+    SW:  (29.26380930573638, -104.3619728276011)
+    SE:  (28.846349046410847, -92.23420546721754)
 """
 
 from math import degrees, radians, atan, sin, cos, sqrt, tan
@@ -49,6 +69,13 @@ def scan_to_geod(y, x):
     > math.sqrt
     > math.atan
     > math.degrees
+
+    References
+    -----------
+    United States, Congress, National Oceanic & Atmospheric Administration.
+        “GOES R Series Product Definition and User's Guide.”
+        GOES R Series Product Definition and User's Guide, 2nd ed., vol. 3,
+        Harris Corporation, 2018, pp. 56–60.
     """
     r_eq = 6378137          # semi major axis of projection, m
     inv_f = 298.257222096   # inverse flattening
@@ -123,6 +150,13 @@ def geod_to_scan(lat, lon):
     > math.sqrt
     > math.atan
     > math.radians
+
+    References
+    ----------
+    United States, Congress, National Oceanic & Atmospheric Administration.
+        “GOES R Series Product Definition and User's Guide.”
+        GOES R Series Product Definition and User's Guide, 2nd ed., vol. 3,
+        Harris Corporation, 2018, pp. 56–60.
     """
     r_eq = 6378137          # semi major axis of projection, m
     inv_f = 298.257222096   # inverse flattening
@@ -153,8 +187,100 @@ def geod_to_scan(lat, lon):
     return (y, x)
 
 
+
+def remove_glm_ellipse(lat, lon):
+    """
+    Remove the GLM parallax correction built into the L2 Events, Groups,
+    & Flashes (EGF) data
+
+    Parameters
+    -----------
+    lat : float or numpy array of floats
+        Geodetic latitude(s) of GLM EGF data
+    lon : float or numpy array of floats
+        Geodetic longitude(s) of GLM EGF data
+
+    Returns
+    -------
+    alpha : float or numpy array of floats
+        North/South elevation angle (y-axis), in radians
+    beta : float or numpy array of floats
+        East/West scanning angle (x-axis), in radians
+
+    Dependencies                    Alias
+    ------------                   -------
+    > numpy                   (import numpy as np)
+
+
+    References
+    ----------
+    United States, Congress, National Oceanic & Atmospheric Administration.
+        “GOES R Series Product Definition and User's Guide.”
+        GOES R Series Product Definition and User's Guide, 2nd ed., vol. 3,
+        Harris Corporation, 2018, pp. 56–60.
+
+    Van Bezooijen R.W.H, et al. “Image Navigation and Registration for the Geostationary
+        Lightning Mapper (Glm).” Proceedings of Spie - the International Society
+        for Optical Engineering, vol. 10004, 2016, doi:10.1117/12.2242141.
+    """
+    re_grs80 =    6.378137e6       # GRS80 equatorial radius, in meters
+    rp_grs80 =    6.35675231414e6  # GRS80 polar radius, in meters
+    sat_lon_r =   -1.308996939     # GOES-16 longitude of projection origin, in radians
+    sat_lon_d =   -75.0            # GOES-16 longitude of projection origin, in degrees
+    sat_h_grs80 = 35786023         # GOES-16 height above GRS80 surface, in meters
+
+    re_le = 6.378137e6 + 14.0e3     # GLM Lightning Ellipse equatorial radius, in meters
+    rp_le = 6.362755e6              # GLM Lightning Ellipse polar radius, in meters
+
+    sat_H =  sat_h_grs80 + re_grs80             # GOES-16 GRS80 geocentric distance, in meters
+    ff_grs = (re_grs80 - rp_grs80) / re_grs80   # GRS80 flattening factor
+    ff_le =  (re_le - rp_le) / re_le            # GLM Lightning Ellipse flattening factor
+
+    delta_lon = lon - sat_lon_d
+    delta_lon[delta_lon < -180] += 360
+    delta_lon[delta_lon > 180] -= 360
+
+    lon_rad = np.radians(delta_lon)
+    lat_rad = np.radians(lat)
+
+    # Calculate the geocentric lat & lon
+    lon_geocent = lon_rad
+    lat_geocent = np.arctan(np.tan(lat_rad) * (1.0 - ff_e)**2.0)
+
+    cos_lat = np.cos(lat_geocent)
+    sin_lat = np.sin(lat_geocent)
+
+    # Calculate the vector from the center of the lightning ellipse to a point
+    # on the surface
+    R_num = re_le * (1.0 - ff_le)
+    R_denom = np.sqrt(1.0 - ff_le * (2.0 - ff_le) * cos_lat**2)
+
+    R_le = (p_num / p_denom)
+
+    v_x = R_le * cos_lat * np.cos(lon_geocent) - sat_H
+    v_y = R_le * cos_lat * np.sin(lon_geocent)
+    v_z = R_le * sin_lat
+
+    # Take the unit vector of V
+    v_mag = np.sqrt(v_x**2 + v_y**2 + v_z**2)
+    v_x /= v_mag
+    v_y /= v_mag
+    v_z /= v_mag
+
+    # Implement DCM rotation due to reference frame change.
+    # x-axis points towards Earth, z-axis points up, y-axis points left
+    v_x *= -1
+    v_y *= -1
+
+    alpha = np.arctan(v_z / v_x)
+    beta = -np.arcsin(v_y)
+
+    return alpha, beta
+
+
+
 ################################################################################
-############################## Helper Functions ################################
+############## Helper Functions: geod_to_scan() & scan_to_geod() ###############
 ################################################################################
 
 
@@ -508,12 +634,20 @@ def _calc_sz_inv(r_c, theta_c):
 
 
 
+################################################################################
+############## Helper Functions: geod_to_scan() & scan_to_geod() ###############
+################################################################################
 
-# print(scan_to_geod(0.095340, -0.024052))
-# print(geod_to_scan(48.0563, -70.1242)) # (0.12390027294128181, 0.00950246171751412)
-# print(geod_to_scan(33.943546, -84.52599)) # (0.09557181243071429, -0.023614853364253407)
-# print(geod_to_scan(33.8461, -84.6909)) # (0.09533985706770494, -0.024049622722219145)
-# print('NW: ', scan_to_geod(0.11088, -0.0728))
-# print('NE: ', scan_to_geod(0.11088, -0.0448))
-# print('SW: ', scan_to_geod(0.08288, -0.0728))
-# print('SE: ', scan_to_geod(0.08288, -0.0448))
+
+
+
+def main():
+    # print('NW: ', scan_to_geod(0.11088, -0.0728))
+    # print('NE: ', scan_to_geod(0.11088, -0.0448))
+    # print('SW: ', scan_to_geod(0.08288, -0.0728))
+    # print('SE: ', scan_to_geod(0.08288, -0.0448))
+    # remove_glm_ellipse()
+
+
+if __name__ == '__main__':
+    main()
