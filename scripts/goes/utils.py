@@ -111,7 +111,7 @@ _scantime_in_range(start_dt, end_dt, scan_dt)
 
 
 """
-from os import listdir
+from os import listdir, remove
 from os.path import isfile, join
 from os.path import split as os_split
 import pyproj
@@ -180,7 +180,6 @@ def untar(dir_path, dest_path):
         if (f_name.split('.')[1] == 'tgz'):
             print('Unpacking {} to {}'.format(f_name, dest_path))
             f_abs = join(dir_path, f_name)
-            # dest_abs = join(dest_path, f_name)
             unpack_archive(f_abs, dest_path, 'gztar')
             unpacked_files.append(join(dest_path, f_name))
     return unpacked_files
@@ -210,7 +209,7 @@ def trim_header(abs_path):
     if (not isfile(abs_path)):
         raise OSError('File does not exist:', abs_path)
 
-    if (not isfile(abs_path + '.nc') and abs_path[-3:] != '.nc'):
+    if (not isfile(abs_path + '.nc') and abs_path.split('.')[-1] != 'nc'):
         _, f_name = os_split(abs_path)
         print('Trimming {}'.format(f_name))
 
@@ -220,15 +219,16 @@ def trim_header(abs_path):
             f_in.close()
             f_in = None
 
-        with open(abs_path + '.nc', 'wb') as f_out:
+        trimmed_fname = abs_path + '.nc'
+
+        with open(trimmed_fname, 'wb') as f_out:
             f_out.write(data)
             f_out.close()
             f_out = None
 
-    if (abs_path[-3:] != '.nc'):
-        abs_path = abs_path + '.nc'
-
-    return abs_path
+        remove(abs_path)
+        
+    return trimmed_fname
 
 
 
