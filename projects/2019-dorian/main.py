@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import sys
 import os
+import re
 import glob
 
 from nhc_gis_track import track_csv_to_df, pp_df
@@ -160,10 +161,108 @@ def check_data_coverage(base_path):
 
 
 
+def get_fed_files(parent_dir, fix_datetime):
+    """
+    Get the FED files for a given datetime
+
+    datetime format: 2019-08-24 12:00:00
+
+    IXTR98_KNES_262350_123161.2019082623.nc
+    """
+    fed_fnames = []
+
+    mid_dt = datetime.strptime(fix_datetime, "%Y-%m-%d %H:%M:%S")
+    curr_dt = mid_dt - timedelta(seconds=240)    # 4 mins before curr_dt
+    max_dt = mid_dt + timedelta(seconds=300)     # 5 mins after curr_dt
+
+    subdir = datetime.strftime(curr_dt, "%Y%m%d")
+    abs_path = os.path.join(parent_dir, subdir)
+
+    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}.nc)' # Might need \ in front of .
+    # fname_re = r'(IXTR9\d_KNES_\d{6}_\w+\.\d{10}.nc)'
+    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"), datetime.strftime(curr_dt, "%Y%m%d%H"))
+    # When the Best Track fix time is 00:00, we'll need files from directories
+    # representing two different days
+    if (mid_dt.strftime('%H:%M') == '00:00'):
+        subdir = datetime.strftime(curr_dt, "%Y%m%d")
+        abs_path = os.path.join(parent_dir, subdir)
+
+        for f in os.listdir(abs_path):
+            match = re.search(fname_re, f)
+            if (match):
+                curr_fname = match.group(1)
+                fed_fnames.append(curr_fname)
+                curr_dt += timedelta(seconds=60)
+
+                if (curr_dt.minute == 59):
+                    adjusted_dt = curr_dt + timedelta(hours=1)
+                    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}.nc)'
+                    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"),
+                                               datetime.strftime(adjusted_dt, "%Y%m%d%H"))
+                else:
+                    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}.nc)'
+                    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"),
+                                               datetime.strftime(curr_dt, "%Y%m%d%H"))
+
+                if (curr_dt.strftime('%H:%M') == '00:00'):
+                    break
+        # Update directory we're looking in and go again
+        subdir = datetime.strftime(curr_dt, "%Y%m%d")
+        abs_path = os.path.join(parent_dir, subdir)
+
+        for f in os.listdir(abs_path):
+            match = re.search(fname_re, f)
+            if (match):
+                curr_fname = match.group(1)
+                fed_fnames.append(curr_fname)
+                curr_dt += timedelta(seconds=60)
+                if (curr_dt > max_dt):
+                    break
+                if (curr_dt.minute == 59):
+                    adjusted_dt = curr_dt + timedelta(hours=1)
+                    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}.nc)'
+                    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"),
+                                               datetime.strftime(adjusted_dt, "%Y%m%d"))
+                else:
+                    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}.nc)'
+                    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"),
+                                               datetime.strftime(curr_dt, "%Y%m%d%H"))
+    else:
+        dir_files = os.listdir(abs_path)
+        dir_files.sort()
+        for f in dir_files:
+            match = re.search(fname_re, f)
+            if (match):
+                curr_fname = match.group(1)
+                fed_fnames.append(curr_fname)
+                curr_dt += timedelta(seconds=60)
+
+                if (curr_dt > max_dt):
+                    print("REACHED BREAK 3")
+                    break
+
+                if (curr_dt.minute == 59):
+                    curr_hr = curr_dt.hour + 1
+                    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}{}.nc)'
+                    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"),
+                                               datetime.strftime(curr_dt, "%Y%m%d"),
+                                               curr_hr)
+                else:
+                    fname_re = r'(IXTR9\d_KNES_{}_\w+\.{}.nc)'
+                    fname_re = fname_re.format(datetime.strftime(curr_dt, "%d%H%M"),
+                                               datetime.strftime(curr_dt, "%Y%m%d%H"))
+
+    return fed_fnames
+
+
+
+
+
 
 def main():
     track_path_1min = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_1min.txt'
     track_path_60min = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_60min.txt'
+    track_path_10min = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/initial_best_track_interp_10min.txt'
 
     fname_flashes_ne = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/flash_stats/flashes_ne.txt'
     fname_flashes_nw = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/flash_stats/flashes_nw.txt'
@@ -173,7 +272,7 @@ def main():
     fname_hourly_totals = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/flash_stats/hourly_totals.txt'
 
     glm_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/aws'
-    glm_gridded_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded'
+    glm_gridded_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded/nc'
 
     # flash_paths = {'ne': fname_flashes_ne,
     #                'nw': fname_flashes_nw,
@@ -195,14 +294,14 @@ def main():
     # s = quad_coords['s']
     # e = quad_coords['e']
     # w = quad_coords['w']
+    # track_df = track_csv_to_df(track_path_10min)
+    test_dt = '2019-08-25 00:00:00'
+    print('Fetching files for {}...'.format(test_dt))
+    fed_files = get_fed_files(glm_gridded_path, test_dt)
+    for f in fed_files:
+        print('     {}'.format(f))
 
-    ############################################################################
-    #### Get the names of the Flash Extent NetCDF files produced by glmtools ###
-    ############################################################################
-    get_fed_files(glm_gridded_path)
-    # check_data_coverage(glm_gridded_path)
-
-
+    print(f.split('.'))
 
 
 

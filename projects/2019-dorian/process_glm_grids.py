@@ -115,7 +115,7 @@ def trim_fed_files(parent_dir):
 src_dir = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded/raw'
 dest_dir = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded/nc'
 
-unpacked = untar(src_dir, dest_dir)
+# unpacked = untar(src_dir, dest_dir)
 fed_fnames = trim_fed_files(dest_dir)
 
 for f in fed_fnames:
