@@ -34,7 +34,6 @@ import logging
 import boto3
 import errno
 import pytz
-import six
 from botocore.handlers import disable_signing
 import concurrent.futures
 
