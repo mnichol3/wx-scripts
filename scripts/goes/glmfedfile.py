@@ -257,18 +257,3 @@ def read_file(file_paths, window=False):
         fed_objs.append(curr_obj)
 
     return fed_objs
-
-
-
-## Main for testing
-def main():
-    f_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded/nc/20190826'
-    f_name = 'IXTR98_KNES_262011_122283.2019082620.nc'
-    f_abs = join(f_path, f_name)
-    obj = read_file([f_abs])[0]
-    print(obj)
-    # print(obj.goes_imager_projection)
-
-
-if __name__ == '__main__':
-    main()
