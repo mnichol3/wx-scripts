@@ -7,7 +7,7 @@ Flash Extent Density (FED) netCDF files
 
 import re
 from datetime import datetime
-from os.path import split
+from os.path import join, split
 import numpy as np
 from netCDF4 import Dataset
 
@@ -42,6 +42,28 @@ class GLMFEDFile(object):
     fed_window : bool
         If False, 1-min data is represented in the flash_extent_density array.
         If True, 5-min FED window data is represented in the flash_extent_density array.
+
+    Functions
+    ----------
+    __init__             : Initialize a new GLMFEDFile object
+    _get_fname           : Get the name of the FED file from the file's absolute path
+    _parse_scan_datetime : Parse the file's scan date & time from the filename
+    update_x             : Update a GLMFEDFile object's x attribute
+    update_y             : Update a GLMFEDFile object's y attribute
+    update_fed           : Update a GLMFEDFile object's FED data attribute
+    __repr__             : Represent a GLMFEDFile object by printing its scan datetime
+                           & filename
+
+
+    Dependencies                    Alias
+    ------------                   -------
+    > NumPy                 (import numpy as np)
+    > os.path.split         (from os.path import split)
+    > datetime.datetime     (from datetime import datetime)
+    > netCDF4.Dataset       (from netCDF4 import Dataset)
+        * The Class itself doesn't use Dataset, however the partnered read_file()
+          func does
+    > re                             ---
     """
 
     def __init__(self, abs_path, projection_dict, x, y, fed, fed_window):
@@ -78,7 +100,16 @@ class GLMFEDFile(object):
         """
         Parse the scan date & time from the file name
 
-        Ex: IXTR99_KNES_222357_35176.2019052223
+        Filename ex: IXTR99_KNES_222357_35176.2019052223
+                     IXTR9(8 or 9)_KNES_ddHHMM_?????.YYYYmmddHH
+
+                     where:
+                        - dd   : day
+                        - mm   : month
+                        - YYYY : year
+                        - HH   : hour (24-hr, UTC)
+                        - MM   : minute
+                        - ???? : No idea tbh
         """
         scan_date_time = ''
 
@@ -93,7 +124,7 @@ class GLMFEDFile(object):
                 f_time = match_time.group(1)
                 f_date_time = '{} {}'.format(f_date, f_time)
                 scan_date_time = datetime.strptime(f_date_time, '%Y%m%d %H%M')
-                scan_date_time = datetime.strftime(f_date_time, '%Y-%m-%d %H:%M')
+                scan_date_time = datetime.strftime(scan_date_time, '%Y-%m-%d %H:%M')
 
                 return scan_date_time
             else:
@@ -115,6 +146,7 @@ class GLMFEDFile(object):
         """
         if (not isinstance(new_x, np.ndarray)):
             raise TypeError("'new_x' must be a NumPy ndarray, got {}".format(type(new_x)))
+        del self.x
         self.x = new_x
 
 
@@ -130,6 +162,7 @@ class GLMFEDFile(object):
         """
         if (not isinstance(new_y, np.ndarray)):
             raise TypeError("'new_y' must be a NumPy ndarray, got {}".format(type(new_y)))
+        del self.y
         self.y = new_y
 
 
@@ -145,6 +178,7 @@ class GLMFEDFile(object):
         """
         if (not isinstance(new_fed, np.ndarray)):
             raise TypeError("'new_fed' must be a NumPy ndarray, got {}".format(type(new_fed)))
+        del self.fed
         self.fed = new_fed
 
 
@@ -152,6 +186,10 @@ class GLMFEDFile(object):
     def __repr__(self):
         return '<GLMFEDFile object - {} {}>'.format(self.scan_date_time, self.f_name)
 
+
+################################################################################
+################################# End Class ####################################
+################################################################################
 
 
 
@@ -172,6 +210,13 @@ def read_file(file_paths, window=False):
     Returns
     --------
     List of GLMFEDFile objects
+
+    Dependencies                    Alias
+    ------------                   -------
+    > NumPy                 (import numpy as np)
+    > os.path.split         (from os.path import split)
+    > netCDF4.Dataset       (from netCDF4 import Dataset)
+    > glmfedfile.GLMFEDFile (from glmfedfile import GLMFEDFile)
     """
     fed_objs = []
 
@@ -212,3 +257,18 @@ def read_file(file_paths, window=False):
         fed_objs.append(curr_obj)
 
     return fed_objs
+
+
+
+## Main for testing
+def main():
+    f_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded/nc/20190826'
+    f_name = 'IXTR98_KNES_262011_122283.2019082620.nc'
+    f_abs = join(f_path, f_name)
+    obj = read_file([f_abs])[0]
+    print(obj)
+    # print(obj.goes_imager_projection)
+
+
+if __name__ == '__main__':
+    main()
