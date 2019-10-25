@@ -190,6 +190,63 @@ def geod_to_scan(lat, lon):
 
 
 
+def get_fixed_grid_edges(y, x, grid_res):
+    """
+    Get the coordinates of the ABI Fixed Grid cell edges
+
+    See GOES-16 PUG Vol. 3 Sec. 5.1.2
+
+    Parameters
+    ----------
+    y : numpy ndarray
+        y (E/W scanning angle) coordinates, in radians
+    x : numpy ndarray
+        x (N/S elevation angle) coordinates, in radians
+    grid_res : str
+        Grid resolution. Valid values: ['0.5', '1.0', '2.0', '4.0', '10.0']
+
+    Returns
+    -------
+    tuple of numpy ndarrays containing grid cell edges
+        Format: (y_edges, x_edges)
+
+    Dependencies                    Alias
+    ------------                   -------
+    > NumPy                 (import numpy as np)
+    """
+    # These values represent the distance from the center of a grid cell to the
+    # edges. Obtained from the GOES-16 PUG Vol. 3 Sec. 5.1.2
+    res_vals = {
+                '0.5' : 0.7e-05,
+                '1.0' : 1.4e-05,
+                '2.0' : 2.8e-05,
+                '4.0' : 5.6e-05,
+                '10.0': 14.0e-05
+                }
+
+    # More useful than getting a KeyError
+    if (grid_res not in res_vals.keys()):
+        raise ValueError(("Invalid grid resolution '{}'."
+                          "Valid values: ['0.5', '1.0', '2.0', '4.0', '10.0']".format(resolution)))
+
+    # Get the edge offset value for the given grid cell resolution
+    edge_offset = res_vals[grid_res]
+
+    # Subtract the edge offset from each grid cell centroid value, which yields
+    # the left edge of every cell (and the right edge for every cell in x[n-1])
+    #
+    # Add the offset value to the last centroid in the array to obtain
+    # it's right edge
+    x_edges = x - edge_offset
+    x_edges = np.append(x_edges, x[-1] + edge_offset)
+
+    y_edges = y - edge_offset
+    y_edges = np.append(y_edges, y[-1] + edge_offset)
+
+    return (y_edges, x_edges)
+
+
+
 def remove_glm_ellipse(lat, lon):
     """
     Remove the GLM parallax correction built into the L2 Events, Groups,
@@ -232,18 +289,18 @@ def remove_glm_ellipse(lat, lon):
         Lightning Mapper (Glm).” Proceedings of Spie - the International Society
         for Optical Engineering, vol. 10004, 2016, doi:10.1117/12.2242141.
     """
-    re_grs80 =    6.378137e6       # GRS80 equatorial radius, in meters
-    rp_grs80 =    6.35675231414e6  # GRS80 polar radius, in meters
-    sat_lon_r =   -1.308996939     # GOES-16 longitude of projection origin, in radians
-    sat_lon_d =   -75.0            # GOES-16 longitude of projection origin, in degrees
+    re_grs80    = 6.378137e6       # GRS80 equatorial radius, in meters
+    rp_grs80    = 6.35675231414e6  # GRS80 polar radius, in meters
+    sat_lon_r   = -1.308996939     # GOES-16 longitude of projection origin, in radians
+    sat_lon_d   = -75.0            # GOES-16 longitude of projection origin, in degrees
     sat_h_grs80 = 35786023         # GOES-16 height above GRS80 surface, in meters
 
-    re_le = 6.378137e6 + 14.0e3     # GLM Lightning Ellipse equatorial radius, in meters
-    rp_le = 6.362755e6              # GLM Lightning Ellipse polar radius, in meters
+    re_le = 6.378137e6 + 14.0e3    # GLM Lightning Ellipse equatorial radius, in meters
+    rp_le = 6.362755e6             # GLM Lightning Ellipse polar radius, in meters
 
-    sat_H =  sat_h_grs80 + re_grs80             # GOES-16 GRS80 geocentric distance, in meters
+    sat_H  = sat_h_grs80 + re_grs80             # GOES-16 GRS80 geocentric distance, in meters
     ff_grs = (re_grs80 - rp_grs80) / re_grs80   # GRS80 flattening factor
-    ff_le =  (re_le - rp_le) / re_le            # GLM Lightning Ellipse flattening factor
+    ff_le  = (re_le - rp_le) / re_le            # GLM Lightning Ellipse flattening factor
 
     # Validate the arguments
     if (not isinstance(lon,  ndarray)):
@@ -297,7 +354,7 @@ def remove_glm_ellipse(lat, lon):
     alpha = arctan(v_z / v_x)    # y-axis
     beta = -arcsin(v_y)          # x-axis
 
-    return alpha, beta
+    return (alpha, beta)
 
 
 
