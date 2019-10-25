@@ -23,6 +23,10 @@ class GLMFEDFile(object):
         GOES fixed grid projection x-coordinate (radians)
     y : numpy nd array
         GOES fixed grid projection y-coordinate (radians)
+    x_edges : numpy nd array
+        GOES fixed grid projection x-coordinate edges (radians)
+    y_edges : numpy nd array
+        GOES fixed grid projection y-coordinate edges (radians)
     goes_imager_projection : dict of str/float
         Keys:
             latitude_of_projection_origin  : float
@@ -180,6 +184,21 @@ class GLMFEDFile(object):
             raise TypeError("'new_fed' must be a NumPy ndarray, got {}".format(type(new_fed)))
         del self.fed
         self.fed = new_fed
+
+
+
+    def calc_grid_edges(self):
+        """
+        Calculate the edges of the ABI fixed grid cells
+        """
+        x_edges = self.x - 2.8e-05
+        x_edges = np.append(x_edges, self.x[-1] + 2.8e-05)
+
+        y_edges = self.y - 2.8e-05
+        y_edges = np.append(y_edges, self.y[-1] + 2.8e-05)
+
+        self.x_edges = x_edges
+        self.y_edges = y_edges
 
 
 
