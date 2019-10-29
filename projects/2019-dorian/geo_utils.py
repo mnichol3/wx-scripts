@@ -304,6 +304,53 @@ def get_quadrants(range_buffer, nsew_pts):
 
 
 
+def calc_extrema_points(lat, lon, d):
+    """
+    Calculate the coordinate pairs that are due north, south, east, and west
+    of the point formed by (lat, lon) with a radial distance of d
+
+    Parameters
+    ----------
+    lat : float
+        Latitude coordinate of the central point, in decimal degrees
+    lon : float
+        Longitude coordinate of the central point, in decimal degrees
+    d : int or float
+        Radial distance from the central point, in km
+
+    Returns
+    -------
+    extrema_dict : Dict; key : str, val : tuple of float
+        Coordinate pairs that are distance 'd' and due N, E, S, & W from the
+        central point
+        Keys : ['n', 'e', 's', 'w']
+        Val format: (lat, lon)
+    """
+    extrema_dict = {}
+    R = 6378.1                                              # Radius of the Earth, in km
+    bearings = [np.radians(b) for b in [0, 90, 180, 270]]   # Bearings in radians
+    quad_strs = ['n', 'e', 's', 'w']
+
+    lat_0 = np.radians(lat)
+    lon_0 = np.radians(lon)
+
+    for idx, brng in enumerate(bearings):
+
+        lat2 = np.arcsin(np.sin(lat_0) * np.cos(d / R) +
+               np.cos(lat_0) * np.sin(d / R) * np.cos(brng))
+
+        lon2 = lon_0 + np.arctan2(np.sin(brng) * np.sin(d / R) * np.cos(lat_0),
+                                  np.cos(d / R) - np.sin(lat_0) * np.sin(lat2))
+
+        lat2 = np.degrees(lat2)
+        lon2 = np.degrees(lon2)
+
+        extrema_dict[quad_strs[idx]] = (lat2, lon2)
+
+    return extrema_dict
+
+
+
 def main():
     f_path = '/media/mnichol3/pmeyers1/MattNicholson/storms/dorian/glm/gridded/nc/20190826'
     f_name = 'IXTR98_KNES_262011_122283.2019082620.nc'
@@ -314,9 +361,18 @@ def main():
     btcf = (26.5, -76.5)
 
     # Construct 400km buffer around the Best Track center fix
-    # buffer_ring  = geodesic_point_buffer(btcf[0], btcf[1], 400)
-    # extrema_dict = get_quadrant_coords(buffer_ring)
+    buffer_ring  = geodesic_point_buffer(btcf[0], btcf[1], 400)
+    extrema_dict = get_quadrant_coords(buffer_ring)
     # storm_quads  = get_quadrants(buffer_ring, extrema_dict)
+
+    extrema_pts = calc_extrema_points(btcf[0], btcf[1], 400)
+
+    pt_sw = (extrema_pts['s'][0], extrema_pts['w'][1])      # min_y, min_x
+    pt_ne = (extrema_pts['n'][0], extrema_pts['e'][1])      # max_y, max_x
+
+    #                min_y     max_y     min_x     max_x   fed_obj
+    get_grid_subset(pt_sw[0], pt_ne[0], pt_sw[1], pt_ne[1], obj)
+
 
 
     ######################## Test grid subsetting funcs ########################
