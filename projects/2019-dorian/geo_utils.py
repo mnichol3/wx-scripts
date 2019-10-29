@@ -25,6 +25,13 @@ def get_nrst_grid(y, x, fed_obj):
     y : float
         Latitude in decimal degrees
     fed_obj : GLMFEDFile object
+
+    Returns
+    -------
+    idx_dict : dict of floats
+        Dictionary containing the values and their indexes that are closest to
+        the 'x' & 'y' arguments
+        Keys: ['y_idx', 'y_val', 'x_idx', 'x_val']
     """
     pt_y, pt_x = geod_to_scan(y, x)
 
@@ -34,10 +41,75 @@ def get_nrst_grid(y, x, fed_obj):
     y_idx = (np.abs(fed_obj.y - pt_y)).argmin()
     nrst_y = fed_obj.y[y_idx]
 
-    print('Nearest x to {0:.6f} is {1:.6f}'.format(pt_x, nrst_x))
-    print('Nearest y to {0:.6f} is {1:.6f}'.format(pt_y, nrst_y))
+    # print('Nearest x to {0:.6f} is {1:.6f}'.format(pt_x, nrst_x))
+    # print('Nearest y to {0:.6f} is {1:.6f}'.format(pt_y, nrst_y))
 
-    print(scan_to_geod(nrst_y, nrst_x))
+    idx_dict = {
+                    'y_idx' : y_idx,
+                    'y_val' : nrst_y,
+                    'x_idx' : x_idx,
+                    'x_val' : nrst_x
+                }
+
+    return idx_dict
+
+
+
+def get_grid_subset(min_y, max_y, min_x, max_x, fed_obj):
+    """
+    Get a geographic subset of the ABI Fixed Grid defined by [min_y, max_y, min_x, max_x].
+
+    Getting the geographic subset must take place using scanning angle radians
+    (as opposed to georeferencing the scanning angle radians and using geodetic
+    lat & lon to take the subset) as the geometry of the grid being overlayed
+    on the GRS-80 ellipsoid makes subsetting much more difficult
+
+    Parameters
+    -----------
+    min_y : float
+        Smallest latitude (y) point that defines the geographic subset, in
+        decimal degrees
+    max_y : float
+        Largest latitude (y) point that defines the geographic subset, in
+        decimal degrees
+    min_x : float
+        Smallest longitude (x) point that defines the geographic subset, in
+        decimal degrees
+    max_x : float
+        Largest longitude (x) point that defines the geographic subset, in
+        decimal degrees
+    fed_obj : GLMFEDFile object
+        GLMFEDFile object containing the data to subset
+
+    Returns
+    -------
+    dict of floats
+
+    """
+    # Get the indexes of the smallest lat & lon points in the ABI Fixed Grid
+    # x  y coordinate arrays
+    min_dict = get_nrst_grid(min_y, min_x, fed_obj)
+
+    min_y_idx = min_dict['y_idx']
+    min_x_idx = min_dict['x_idx']
+
+    del min_dict
+
+    # Get the indexes of the largest lat & lon points in the ABI Fixed Grid
+    # x & y coordinate arrays
+    max_dict = get_nrst_grid(max_y, max_x, fed_obj)
+
+    max_y_idx = max_dict['y_idx']
+    max_x_idx = max_dict['x_idx']
+
+    del max_dict
+
+    fed_obj.update_x(fed_obj.x[min_x_idx : max_x_idx])
+    fed_obj.update_y(fed_obj.y[max_y_idx : min_y_idx]) # Grid Y values decrease from right to left
+
+    # 2dArray[y1 : y2, x1 : x2]
+    fed_obj.update_fed(fed_obj.flash_extent_density[max_y_idx: min_y_idx, min_x_idx : max_x_idx])
+
 
 
 
@@ -64,11 +136,18 @@ def georeference(fed_obj):
     lons, lats = p(x_trans, y_trans, inverse=True)
 
     # Assign pixels showing space to a single point in the Gulf of Alaska
-    # lats[np.isnan(fed_obj.flash_extent_density)] = 57
-    # lons[np.isnan(fed_obj.flash_extent_density)] = -152
+    lats[np.isnan(fed_obj.flash_extent_density)] = 57
+    lons[np.isnan(fed_obj.flash_extent_density)] = -152
 
-    print(lons.shape)
-    print(lats.shape)
+    # print(lons)
+    # print(lats)
+    # print(lons.shape)
+    # print(lats.shape)
+    fed_obj.x = lons
+    fed_obj.y = lats
+    fed_obj.coord_type = 'geod'
+
+    return fed_obj
 
 
 
@@ -231,18 +310,25 @@ def main():
     f_abs = join(f_path, f_name)
     obj = glmfedfile.read_file([f_abs])[0]
 
-    # geo_lat = 38.989540
-    # geo_lon = -76.945641
-
     # Interpolated Best Track center fix for 12z 01 Sep
     btcf = (26.5, -76.5)
 
-    # Construct 500km buffer around the Best Track center fix
-    buffer_ring = geodesic_point_buffer(btcf[0], btcf[1], 500)
-    extrema_dict = get_quadrant_coords(buffer_ring, pprint=True)
+    # Construct 400km buffer around the Best Track center fix
+    # buffer_ring  = geodesic_point_buffer(btcf[0], btcf[1], 400)
+    # extrema_dict = get_quadrant_coords(buffer_ring)
+    # storm_quads  = get_quadrants(buffer_ring, extrema_dict)
 
-    # get_nrst_grid(geo_lat, geo_lon, obj)
-    # geos_to_mercator(obj)
+
+    ######################## Test grid subsetting funcs ########################
+    # btcf1 = (26.5, -77.5)
+    # btcf2 = (27.5, -76.5)
+    # get_grid_subset(btcf1[0], btcf2[0], btcf1[1], btcf2[1], obj)
+    # georeference(obj)
+    # print(obj.flash_extent_density.shape)
+    # print(obj.x)
+    # print(obj.y)
+    ############################################################################
+
 
 
 
