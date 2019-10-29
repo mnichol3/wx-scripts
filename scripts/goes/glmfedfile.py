@@ -88,6 +88,7 @@ class GLMFEDFile(object):
         self.goes_imager_projection = projection_dict
         self.flash_extent_density = fed
         self.fed_window = fed_window
+        self.coord_type = 'scan'
 
 
 
@@ -182,8 +183,8 @@ class GLMFEDFile(object):
         """
         if (not isinstance(new_fed, np.ndarray)):
             raise TypeError("'new_fed' must be a NumPy ndarray, got {}".format(type(new_fed)))
-        del self.fed
-        self.fed = new_fed
+        del self.flash_extent_density
+        self.flash_extent_density = new_fed
 
 
 
