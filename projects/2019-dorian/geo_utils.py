@@ -112,7 +112,6 @@ def get_grid_subset(min_y, max_y, min_x, max_x, fed_obj):
 
 
 
-
 def georeference(fed_obj):
     """
     Transform GLMFEDFILE coordinates from scanning angle (radians) to geodetic
@@ -357,22 +356,49 @@ def main():
     f_abs = join(f_path, f_name)
     obj = glmfedfile.read_file([f_abs])[0]
 
-    # Interpolated Best Track center fix for 12z 01 Sep
+    ### Interpolated Best Track center fix for 12z 01 Sep
     btcf = (26.5, -76.5)
+    # btcf = (27.1, -78.4)
+    # print(geod_to_scan(btcf[0], btcf[1]))
 
-    # Construct 400km buffer around the Best Track center fix
+    ### Construct 400km buffer around the Best Track center fix
     buffer_ring  = geodesic_point_buffer(btcf[0], btcf[1], 400)
     extrema_dict = get_quadrant_coords(buffer_ring)
     # storm_quads  = get_quadrants(buffer_ring, extrema_dict)
 
-    extrema_pts = calc_extrema_points(btcf[0], btcf[1], 400)
+    grid_dict = get_nrst_grid(btcf[0], btcf[1], obj)
 
-    pt_sw = (extrema_pts['s'][0], extrema_pts['w'][1])      # min_y, min_x
-    pt_ne = (extrema_pts['n'][0], extrema_pts['e'][1])      # max_y, max_x
+    y_span = (grid_dict['y_idx'] - 200, grid_dict['y_idx'] + 200)
+    x_span = (grid_dict['x_idx'] - 200, grid_dict['x_idx'] + 200)
 
-    #                min_y     max_y     min_x     max_x   fed_obj
-    get_grid_subset(pt_sw[0], pt_ne[0], pt_sw[1], pt_ne[1], obj)
+    print(y_span)
+    print(x_span)
+    # print(scan_to_geod(obj.y[y_span[0]], obj.x[x_span[0]]))
+    # print(scan_to_geod(obj.y[y_span[1]], obj.x[x_span[1]]))
 
+
+    btcf_grid = obj.flash_extent_density[y_span[0] : y_span[1], x_span[0] : x_span[1]]
+    print(btcf_grid.shape)
+
+    # Dist = 467 km
+    print(scan_to_geod(obj.y[grid_dict['y_idx']], obj.x[x_span[1]]))
+
+    ############ Get coordinates to subset the FED data ############
+    # extrema_pts = calc_extrema_points(btcf[0], btcf[1], 500)
+    #
+    # # for key, val in extrema_pts.items():
+    # #     print(key, val)
+    #
+    # pt_sw = (extrema_pts['s'][0], extrema_pts['w'][1])      # min_y, min_x
+    # pt_ne = (extrema_pts['n'][0], extrema_pts['e'][1])      # max_y, max_x
+    #
+    # #                min_y     max_y     min_x     max_x   fed_obj
+    # get_grid_subset(pt_sw[0], pt_ne[0], pt_sw[1], pt_ne[1], obj)
+    #
+    # print(obj.flash_extent_density.shape)
+    # # georeference(obj)
+    # print(obj.x[0])
+    # print(obj.y[0])
 
 
     ######################## Test grid subsetting funcs ########################
