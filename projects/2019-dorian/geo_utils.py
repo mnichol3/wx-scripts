@@ -371,17 +371,13 @@ def main():
     y_span = (grid_dict['y_idx'] - 200, grid_dict['y_idx'] + 200)
     x_span = (grid_dict['x_idx'] - 200, grid_dict['x_idx'] + 200)
 
-    print(y_span)
-    print(x_span)
-    # print(scan_to_geod(obj.y[y_span[0]], obj.x[x_span[0]]))
-    # print(scan_to_geod(obj.y[y_span[1]], obj.x[x_span[1]]))
-
-
     btcf_grid = obj.flash_extent_density[y_span[0] : y_span[1], x_span[0] : x_span[1]]
     print(btcf_grid.shape)
 
-    # Dist = 467 km
-    print(scan_to_geod(obj.y[grid_dict['y_idx']], obj.x[x_span[1]]))
+    # Grid to cumulate FED data on
+    cum_grid = np.zeros((400, 400), dtype=int)
+
+    cum_grid = np.add(cum_grid, btcf_grid)
 
     ############ Get coordinates to subset the FED data ############
     # extrema_pts = calc_extrema_points(btcf[0], btcf[1], 500)
