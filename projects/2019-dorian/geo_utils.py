@@ -375,9 +375,9 @@ def main():
     print(btcf_grid.shape)
 
     # Grid to cumulate FED data on
-    cum_grid = np.zeros((400, 400), dtype=int)
-
-    cum_grid = np.add(cum_grid, btcf_grid)
+    # cum_grid = np.zeros((400, 400), dtype=int)
+    #
+    # cum_grid = np.add(cum_grid, btcf_grid)
 
     ############ Get coordinates to subset the FED data ############
     # extrema_pts = calc_extrema_points(btcf[0], btcf[1], 500)

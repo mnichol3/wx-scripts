@@ -8,10 +8,10 @@ class CumGrid_10min(object):
     """
     Attributes
     ----------
-    ref_time : str
-        Time in the middle of the 10-minute span. Corresponds to a 10-minute
+    ref_datetime : str
+        Date & (midpoint) time of the 10-minute span. Corresponds to a 10-minute
         Best Track interpolated center fix.
-        Format: HH:MM (UTC)
+        Format: YYYY-MM-DD_HH-MM-SS (UTC)
     ref_date : str
         Date of the 10-minute span. Format: YYYY-MM-DD
     btcf : tuple of floats
@@ -36,25 +36,24 @@ class CumGrid_10min(object):
 
     """
 
-    def __init__(self, ref_date, ref_time, center_fix, cum_grid, ref_grid):
+    def __init__(self, ref_datetime, center_fix, cum_grid, ref_grid_x, ref_grid_y):
         """
         Parameters
         ----------
-        ref_date : str
-        ref_time : str
+        ref_datetime : str
         center_fix : tuple of float
         cum_grid : numpy ndarray
         ref_grid : numpy ndarray
         """
-        self.ref_date = ref_date
-        self.ref_time = ref_time
+        self.ref_datetime = ref_datetime
         self.center_fix = center_fix
         self.cum_grid = cum_grid
-        self.ref_grid = ref_grid
+        self.ref_grid_x = ref_grid_x
+        self.ref_grid_y = ref_grid_y
 
 
 
     def __repr__(self):
         lat = self.center_fix[0]
         lon = self.center_fix[1]
-        return '<CumGrid_10min object - {0} {1}z ({2:.4f},{3:.4f})>'.format(self.ref_date, self.ref_time, lat, lon)
+        return '<CumGrid_10min object - {0}z ({1:.4f},{2:.4f})>'.format(self.ref_datetime, lat, lon)
