@@ -66,10 +66,10 @@ def create_arg_parser():
 
     parser.add_argument('-t', '--type', metavar='f_type', required=False,
                         dest='f_type', action='store', type=str, default='nc',
-                        help="Type of file to download ('nc': NetCDF, 'tiff': GeoTIFF, 'grib': GRIB2)"")
+                        help="Type of file to download ('nc': NetCDF, 'tif': GeoTIFF)")
 
     parser.add_argument('-o', '--out_path', metavar='out_path', required=False,
-                        dest='date', action='store', type=str, default=curr_pwd
+                        dest='date', action='store', type=str, default=curr_pwd,
                         help='Directory to download the snowfall analysis file to')
 
     return parser
@@ -155,45 +155,14 @@ def parse_fname(cmd_args):
     Ex seasonal accumulation fname:
         sfav2_CONUS_2018093012_to_2018121512.nc
     """
-    season_start = '093012'     # Start month, day, & hour for seasonal accum
-
-    f_bases = {'season': 'sfav2_CONUS_{}_to_{}',
-               'hour':   'sfav2_CONUS_{}h_' }
-
-    date_in = adjust_date(cmd_args)
 
     # Seasonal accumulation file
     if (cmd_args.period == 99):
-        if (not check_ftype(cmd_args)):
-            print('{} not valid for seasonal accumulation period. Downloading as NetCDF'.format(cmd_args.f_type))
-            f_type = 'nc'
-        else:
-            f_type = cmd_args.f_type
-
-        # If we are in the new year of the winter season (i.e., Jan 2020 of the
-        # 2019-2020 winter season), adjust the start year defining the winter season
-        if (date_in.month < 9):
-            start_yr = date_in.year - 1
-        else:
-            start_yr = date_in.year
-
-        date_start = '{}{}'.format(dt_in.year, season_start)
-
-        if (dt_in.hour < 12):
-            dt_in = dt_in.replace(day=dt_in.day - 1)
-
-        dt_in = dt_in.replace(hour=12)
-
-        else:
-
-        date_end =
-        f_name_base = f_bases['season']
-        f_name_base = f_name_base.format()
-        f_name = ''
+        f_name = _parse_fname_season(cmd_args)
     else:
-        f_name_base = f_bases['hour']
-        f_name = f_name_base.format(cmd_args.period)
-        f_name  = f_name + in_date
+        f_name = _parse_fname_hour(cmd_args)
+
+    return f_name
 
 
 
@@ -249,6 +218,58 @@ def check_ftype(cmd_args):
         return True
 
 
+
+def _parse_fname_season(cmd_args):
+    """
+    Parse the filename for a seasonal-accumulation file
+
+    Ex seasonal accumulation fname: sfav2_CONUS_2018093012_to_2018121512.nc
+    """
+    f_name_base = 'sfav2_CONUS_{}_to_{}'
+    season_start = '093012'     # Start month, day, & hour for seasonal accum
+
+    date_in = adjust_date(cmd_args)
+
+    if (not check_ftype(cmd_args)):
+        print('{} not valid for seasonal accumulation period. Downloading as NetCDF'.format(cmd_args.f_type))
+        f_type = 'nc'
+    else:
+        f_type = cmd_args.f_type
+
+    # If we are in the new year of the winter season (i.e., Jan 2020 of the
+    # 2019-2020 winter season), adjust the start year defining the winter season
+    if (date_in.month < 9):
+        start_yr = date_in.year - 1
+    else:
+        start_yr = date_in.year
+
+    date_start = '{}{}'.format(start_yr, season_start)
+    date_end = datetime.strftime(date_in, '%Y%m%d%H')
+
+    f_name = f_name_base.format(date_start, date_end)
+
+    f_name = '{}.{}'.format(f_name, f_type)
+
+    return f_name
+
+
+
+def _parse_fname_hour(cmd_args):
+    """
+    Parse the filename for a 6-, 24-, 48-, or 72-hour accumulation file
+
+    Ex fname: sfav2_CONUS_6h_2019121518.nc
+    """
+    f_name_base = 'sfav2_CONUS_{}h_{}'
+
+    date_in = adjust_date(cmd_args)
+    valid_date = date_in.strftime(date_in, '%Y%m%d%H')
+
+    f_name = f_name_base.format(cmd_args.period, valid_date)
+
+    f_name = '{}.{}'.format(f_name, cmd_args.f_type)
+
+    return f_name
 
 
 def main():
