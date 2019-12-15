@@ -237,6 +237,63 @@ class TestNOHRSC(unittest.TestCase):
 
 
 
+    ############################################################################
+    ########################### Test parse_url #################################
+    ############################################################################
+
+
+
+    def test_parse_url_1(self):
+        args_in = ['-d', '2019-12-15-18', '-p', '6', '-t', 'nc']
+
+        parser = nohrsc.create_arg_parser()
+        args = parser.parse_args(args_in)
+
+        url = nohrsc.parse_url(args)
+        url_actual = 'https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_6h_2019121518.nc'
+
+        self.assertEqual(url, url_actual)
+
+
+
+    def test_parse_url_2(self):
+        args_in = ['-d', '2019-12-15-18', '-p', '24', '-t', 'nc']
+
+        parser = nohrsc.create_arg_parser()
+        args = parser.parse_args(args_in)
+
+        url = nohrsc.parse_url(args)
+        url_actual = 'https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_24h_2019121512.nc'
+
+        self.assertEqual(url, url_actual)
+
+
+
+    def test_parse_url_3(self):
+        args_in = ['-d', '2019-12-15-18', '-p', '99', '-t', 'nc']
+
+        parser = nohrsc.create_arg_parser()
+        args = parser.parse_args(args_in)
+
+        url = nohrsc.parse_url(args)
+        url_actual = 'https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_2019093012_to_2019121512.nc'
+
+        self.assertEqual(url, url_actual)
+
+
+
+    def test_parse_url_4(self):
+        args_in = ['-d', '2019-12-15-06', '-p', '99', '-t', 'nc']
+
+        parser = nohrsc.create_arg_parser()
+        args = parser.parse_args(args_in)
+
+        url = nohrsc.parse_url(args)
+        url_actual = 'https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_2019093012_to_2019121412.nc'
+
+        self.assertEqual(url, url_actual)
+
+
 
 
 if __name__ == '__main__':
