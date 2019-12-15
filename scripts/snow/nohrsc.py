@@ -11,8 +11,6 @@ from os.path import join, isdir
 from os import mkdir, getcwd
 import argparse
 
-base_url = 'https://www.nohrsc.noaa.gov/snowfall/data/'
-
 
 def create_arg_parser():
     """
@@ -114,6 +112,142 @@ def parse_date(date_arg):
         chunk2 = '{}{}'.format(chunk2, hour_adj)
 
     return (chunk1, chunk2)
+
+
+
+def parse_url(cmd_args):
+    """
+    Parse the snowfall analysis file url
+
+    Parameters
+    ----------
+    cmd_args : argparse obj
+
+    Return
+    ------
+    url : str
+
+    Example url:
+        https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_6h_2019121518.nc
+        https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_2019093012_to_2019121512.png
+    """
+    base_url = 'https://www.nohrsc.noaa.gov/snowfall/data/'
+
+    date_chunk1, date_chunk2 = parse_date(cmd_args.date)
+
+
+
+def parse_fname(cmd_args):
+    """
+    Parse the snowfall analysis file url
+
+    Parameters
+    ----------
+    cmd_args : argparse obj
+
+    Return
+    -------
+    f_name : str
+
+    Ex fname:
+        sfav2_CONUS_6h_2019121518.nc
+
+    Ex seasonal accumulation fname:
+        sfav2_CONUS_2018093012_to_2018121512.nc
+    """
+    season_start = '093012'     # Start month, day, & hour for seasonal accum
+
+    f_bases = {'season': 'sfav2_CONUS_{}_to_{}',
+               'hour':   'sfav2_CONUS_{}h_' }
+
+    date_in = adjust_date(cmd_args)
+
+    # Seasonal accumulation file
+    if (cmd_args.period == 99):
+        if (not check_ftype(cmd_args)):
+            print('{} not valid for seasonal accumulation period. Downloading as NetCDF'.format(cmd_args.f_type))
+            f_type = 'nc'
+        else:
+            f_type = cmd_args.f_type
+
+        # If we are in the new year of the winter season (i.e., Jan 2020 of the
+        # 2019-2020 winter season), adjust the start year defining the winter season
+        if (date_in.month < 9):
+            start_yr = date_in.year - 1
+        else:
+            start_yr = date_in.year
+
+        date_start = '{}{}'.format(dt_in.year, season_start)
+
+        if (dt_in.hour < 12):
+            dt_in = dt_in.replace(day=dt_in.day - 1)
+
+        dt_in = dt_in.replace(hour=12)
+
+        else:
+
+        date_end =
+        f_name_base = f_bases['season']
+        f_name_base = f_name_base.format()
+        f_name = ''
+    else:
+        f_name_base = f_bases['hour']
+        f_name = f_name_base.format(cmd_args.period)
+        f_name  = f_name + in_date
+
+
+
+def adjust_date(cmd_args):
+    """
+    Adjust the input date & time, if necessary
+
+    Parameters
+    ----------
+    cmd_args : parseargs obj
+
+    Return
+    -------
+    date_in : datetime object
+    """
+    valid_times_6 = [0, 6, 12, 18]
+    valid_times_24 = [0, 12]
+
+    date_in = datetime.strptime(cmd_args.date, '%Y-%m-%d-%H')
+
+    if (cmd_args.period == 99):
+        """
+        Seasonal accumulation
+        Set the ending hour to 12z and decrement the day, if necessary
+        """
+        if (date_in.hour < 12):
+            date_in = date_in.replace(day = date_in.day - 1)
+        date_in = date_in.replace(hour = 12)
+    elif (cmd_args.period == 6):
+        """
+        6-hr accumulation
+        Set the hour to the previous synoptic time if necessary
+        """
+        if (date_in.hour not in valid_times_6):
+            new_hr = max([i for i in valid_times_6 if date_in.hour > i])
+            date_in = date_in.replace(hour = new_hr)
+    else:
+        if (date_in.hour not in valid_times_24):
+            new_hr = max([i for i in valid_times_24 if date_in.hour > i])
+            date_in = date_in.replace(hour = new_hr)
+
+    return date_in
+
+
+
+def check_ftype(cmd_args):
+    """
+    Check that the file type & accumulation period combination is valid
+    """
+    if (cmd_args.period == 99 and cmd_args.f_type == 'grib'):
+        return False
+    else:
+        return True
+
 
 
 
