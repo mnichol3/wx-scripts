@@ -76,45 +76,6 @@ def create_arg_parser():
 
 
 
-def parse_date(date_arg):
-    """
-    Format the given date in order to create the analysis file download path
-
-    Parameters
-    ----------
-    date_arg : str
-        Format: 'YYYY-MM-DD'
-
-    Return
-    -------
-    Tuple of str
-        The first string contains the year & month, the second contains the
-        year, month, day, & hour
-    """
-    hour_adj = -1
-    valid_times = [0, 6, 12, 18]
-
-    date_in = datetime.strptime(date_arg, '%Y-%m-%d-%H')
-
-    # If the given hour is not one of the 4 synoptic times, find the closest previos
-    # synoptic time
-    if (date_in.hour not in valid_times):
-        hour_adj = max([i for i in valid_times if date_in.hour > i])
-
-    # First chunk, consisting of year and month in format YYYYMM
-    chunk1 = datetime.strf('%Y%m', date_in)
-
-    # Second chunk, format: YYYYMMDDHH
-    if (hour_adj == -1):
-        chunk2 = datetime.strf('%Y%m%d%H', date_in)
-    else:
-        chunk2 = datetime.strf('%Y%m%d', date_in)
-        chunk2 = '{}{}'.format(chunk2, hour_adj)
-
-    return (chunk1, chunk2)
-
-
-
 def parse_url(cmd_args):
     """
     Parse the snowfall analysis file url
@@ -131,9 +92,14 @@ def parse_url(cmd_args):
         https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_6h_2019121518.nc
         https://www.nohrsc.noaa.gov/snowfall/data/201912/sfav2_CONUS_2019093012_to_2019121512.png
     """
-    base_url = 'https://www.nohrsc.noaa.gov/snowfall/data/'
+    base_url = 'https://www.nohrsc.noaa.gov/snowfall/data'
 
-    date_chunk1, date_chunk2 = parse_date(cmd_args.date)
+    path_date = _get_path_date(cmd_args)
+    f_name = parse_fname(cmd_args)
+
+    url = '{}/{}/{}'.format(base_url, path_date, f_name)
+
+    return url
 
 
 
@@ -208,6 +174,11 @@ def adjust_date(cmd_args):
 
 
 
+################################################################################
+############################### Helper Functions ###############################
+################################################################################
+
+
 def check_ftype(cmd_args):
     """
     Check that the file type & accumulation period combination is valid
@@ -216,6 +187,13 @@ def check_ftype(cmd_args):
         return False
     else:
         return True
+
+
+
+def _get_path_date(cmd_args):
+    date_in = datetime.strptime(cmd_args.date, '%Y-%m-%d-%H')
+    path_date = date_in.strftime('%Y%m')
+    return path_date
 
 
 
@@ -270,6 +248,7 @@ def _parse_fname_hour(cmd_args):
     f_name = '{}.{}'.format(f_name, cmd_args.f_type)
 
     return f_name
+
 
 
 def main():
