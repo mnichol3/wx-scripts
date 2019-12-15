@@ -8,8 +8,10 @@ Center (NOHRSC)
 """
 from datetime import datetime
 from os.path import join, isdir
-from os import mkdir, getcwd
+from os import makedirs, getcwd, listdir, remove
 import argparse
+import wget
+
 
 
 def create_arg_parser():
@@ -51,6 +53,7 @@ def create_arg_parser():
     the National Weather Service National Operational Hydrologic Remote Sensing
     Center (NOHRSC)
     """
+
     curr_pwd = getcwd()
 
     parser = argparse.ArgumentParser(description=parse_desc)
@@ -69,20 +72,27 @@ def create_arg_parser():
                         help="Type of file to download ('nc': NetCDF, 'tif': GeoTIFF)")
 
     parser.add_argument('-o', '--out_path', metavar='out_path', required=False,
-                        dest='date', action='store', type=str, default=curr_pwd,
+                        dest='out_path', action='store', type=str, default=curr_pwd,
                         help='Directory to download the snowfall analysis file to')
+
+    parser.add_argument('-f', '--ftree', required=False, dest='file_tree',
+                        action='store_true', default=False,
+                        help='If True, save files to out_path/snowfall/date/files')
 
     return parser
 
 
 
-def parse_url(cmd_args):
+def parse_url(cmd_args, f_name=None):
     """
     Parse the snowfall analysis file url
 
     Parameters
     ----------
-    cmd_args : argparse obj
+    cmd_args : argparse.Namespace obj
+        Parsed command line arguments
+    f_name : str, optional
+        Target filename. Can be passed to save another call to parse_fname
 
     Return
     ------
@@ -95,7 +105,9 @@ def parse_url(cmd_args):
     base_url = 'https://www.nohrsc.noaa.gov/snowfall/data'
 
     path_date = _get_path_date(cmd_args)
-    f_name = parse_fname(cmd_args)
+
+    if (not f_name):
+        f_name = parse_fname(cmd_args)
 
     url = '{}/{}/{}'.format(base_url, path_date, f_name)
 
@@ -109,7 +121,8 @@ def parse_fname(cmd_args):
 
     Parameters
     ----------
-    cmd_args : argparse obj
+    cmd_args : argparse.Namespace obj
+        Parsed command line arguments
 
     Return
     -------
@@ -138,7 +151,8 @@ def adjust_date(cmd_args):
 
     Parameters
     ----------
-    cmd_args : parseargs obj
+    cmd_args : argparse.Namespace obj
+        Parsed command line arguments
 
     Return
     -------
@@ -174,6 +188,31 @@ def adjust_date(cmd_args):
 
 
 
+def download(cmd_args):
+    """
+    Download a snow analysis file from NOHRSC
+
+    Parameters
+    ----------
+    cmd_args : argparse.Namespace obj
+        Parsed command line arguments
+
+    Return
+    ------
+    f_path : str
+        Absolute path of the downloaded file
+    """
+    target_fname = parse_fname(cmd_args)
+    out_path = _validate_outpath(cmd_args)
+    out_path = join(out_path, target_fname)
+    print('\nDownloading {} to {}'.format(target_fname, out_path))
+
+    target_url = parse_url(cmd_args, f_name = target_fname)
+
+    wget.download(target_url, out_path)
+
+
+
 ################################################################################
 ############################### Helper Functions ###############################
 ################################################################################
@@ -190,9 +229,15 @@ def check_ftype(cmd_args):
 
 
 
-def _get_path_date(cmd_args):
+def _get_path_date(cmd_args, delim=None):
     date_in = datetime.strptime(cmd_args.date, '%Y-%m-%d-%H')
-    path_date = date_in.strftime('%Y%m')
+    if (delim is not None):
+        if (not isinstance(delim, str)):
+            raise ValueError('Delimiter argument must be of type str')
+        pattern = '%Y{}%m'.format(delim)
+    else:
+        pattern = '%Y%m'
+    path_date = date_in.strftime(pattern)
     return path_date
 
 
@@ -251,9 +296,27 @@ def _parse_fname_hour(cmd_args):
 
 
 
+def _validate_outpath(cmd_args):
+    if (cmd_args.file_tree):
+        dir_date = _get_path_date(cmd_args, delim='-')
+        dirs = join(cmd_args.out_path, 'snowfall', dir_date)
+    else:
+        dirs = cmd_args.out_path
+    if (not isdir(dirs)):
+        makedirs(dirs)
+    return dirs
+
+
+
 def main():
+
+    # Create a parser instance
     parser = create_arg_parser()
+
+    # Parse the command line argmuments. Returns an argparse.Namespace obj
     args = parser.parse_args()
+
+    download(args)
 
 
 
