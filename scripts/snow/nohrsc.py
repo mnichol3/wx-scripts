@@ -263,7 +263,7 @@ def _parse_fname_hour(cmd_args):
     f_name_base = 'sfav2_CONUS_{}h_{}'
 
     date_in = adjust_date(cmd_args)
-    valid_date = date_in.strftime(date_in, '%Y%m%d%H')
+    valid_date = date_in.strftime('%Y%m%d%H')
 
     f_name = f_name_base.format(cmd_args.period, valid_date)
 
