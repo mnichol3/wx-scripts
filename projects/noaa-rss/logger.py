@@ -40,19 +40,52 @@ def init_logger(log_dir, log_name, log_level='debug'):
                   'critical': logging.CRITICAL
                  }
 
-    if not is.path.isdir(log_dir):
+    if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
     timestamp = parse_log_datetime()
-    log_fname = timestamp + '.log'
-    log_path = os.path.join(log_dir, log_name, log_fname)
+    log_fname = '{}-{}.log'.format(timestamp, log_name)
+    log_path = os.path.join(log_dir, log_fname)
     log_format = logging.Formatter("%(asctime)s %(levelname)6s: %(message)s", "%Y-%m-%d %H:%M:%S")
     handler = logging.FileHandler(log_path)
     handler.setFormatter(log_format)
     logger = logging.getLogger(log_name)
-    logger.setLevel(log_levels[level])
+    logger.setLevel(log_levels[log_level])
     logger.addHandler(handler)
     logger.info("Log created!\n")
     return logger
+
+
+def log_msg(log_name, msg, log_lvl):
+    """
+    Write a message to a log at a specified level.
+
+    Parameters
+    ----------
+    log_name : str
+        Name of the log to write to.
+    msg : str
+        Message to write to the log file.
+    log_lvl : str
+        Level of the log message.
+
+    Returns
+    -------
+    None.
+    """
+    log = logging.getLogger(log_name)
+    if log_lvl == 'debug':
+        log.debug(msg)
+    elif log_lvl == 'info':
+        log.info(msg)
+    elif log_lvl == 'warning':
+        log.warning(msg)
+    elif log_lvl == 'error':
+        log.error(msg)
+    elif log_lvl == 'critical':
+        log.critical(msg)
+    else:
+        log.error('Invalid log level param encountered in logger.log_msg: {}'.format(log_lvl))
+
 
 def remove_old_logs(log_dir):
     """
@@ -78,6 +111,7 @@ def remove_old_logs(log_dir):
             c_time = os.path.getctime(curr_file)
             if (now - c_time) // (24 * 3600) >= 30:
                 os.remove(curr_file)
+
 
 def parse_log_datetime():
     """

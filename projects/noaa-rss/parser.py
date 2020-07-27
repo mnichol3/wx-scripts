@@ -2,7 +2,10 @@
 # Simple RSS feed parser utilizing the feedparser library.
 
 import feedparser as fp
-import logging
+import re
+
+import logger
+from config import Feeds
 
 
 class RssAggregator():
@@ -28,21 +31,33 @@ class RssAggregator():
 		None.
 		"""
 		parsed_feed = fp.parse(self.feed_url)
-		print('Parsing {} - {}'.format(self.feed_url, parsed_feed.feed.get('title', '')))
+		msg = 'Parsing {} - {}'.format(self.feed_url, parsed_feed.feed.get('title', ''))
+		logger.log_msg('main_log', msg, 'debug')
 		print(parsed_feed.feed.get('description', ''))
-		pub_datetime = parsed_feed.feed.get('published', '')
-		print('Published {}'.format(pub_datetime))
-		#print(parsed_feed)
-
+		pub_datetime = parsed_feed.feed.get('RSS text published', '')
+		logger.log_msg('main_log','Published {}'.format(pub_datetime), 'debug')
 		for feed_entry in parsed_feed.entries:
-			the_text = feed_entry.get("description", "").replace('<br />', '')
-			print(the_text)
+			rss_text = feed_entry.get("description", "")
+			rss_text = self.scrub_tags(rss_text)
+			print(rss_text)
+			print('*' * 60)
+			print('*' * 60)
+			print('*' * 60)
 
+	def scrub_tags(self, rss_text):
+		"""
+		Remove XML/HTML tags from parsed RSS text.
 
-def main():
-	url = 'https://w1.weather.gov/xml/current_obs/KMRY.rss'
-	rss_obj = RssAggregator(Feeds.twdat)
+		Parameters
+		----------
+		rss_text : str
+			Parsed RSS text.
 
-
-if __name__ == '__main__':
-	main()
+		Returns
+		-------
+		str : RSS text with tags removed
+		"""
+		import re
+		tag_re = re.compile(r'<[^>]+>')
+		scrubbed_txt = tag_re.sub('', rss_text)
+		return scrubbed_txt

@@ -7,14 +7,16 @@ File contains:
 
 24 Jul 2020
 """
+from os.path import join
 
 class Paths():
     """
     Class to hold local paths.
     """
-    logs = '/path/to/base/log/dir'
-    raw_db = '/path/to/raw/rss/db'
-
+    base_path = '/home/mnichol3/code/wx-scripts/projects/noaa-rss'
+    logs   = join(base_path, 'logs')
+    raw_db = join(base_path, 'raw_rss')
+    output = join(base_path, 'out')
 
 class Feeds():
 	"""
