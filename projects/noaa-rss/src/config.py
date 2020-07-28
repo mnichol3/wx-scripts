@@ -29,8 +29,8 @@ class Feeds():
 	"""
 	Class to hold NOAA RSS URLs.
 	"""
-	twdat = 'https://www.nhc.noaa.gov/xml/TWDAT.xml'         # NHC Tropical Weather Discussion - Atlantic
-	twdep = 'https://www.nhc.noaa.gov/xml/TWDEP.xml'         # NHC Tropical Weather Discussion - EastPac
+	twdat  = 'https://www.nhc.noaa.gov/xml/TWDAT.xml'         # NHC Tropical Weather Discussion - Atlantic
+	twdep  = 'https://www.nhc.noaa.gov/xml/TWDEP.xml'         # NHC Tropical Weather Discussion - EastPac
 	reprpd = 'https://www.nhc.noaa.gov/xml/REPRPD.xml'       # NHC Weather Recon Flights Plan of the Day
-	spcmd = 'http://www.spc.noaa.gov/products/spcmdrss.xml'  # SPC Mesoscale Discussions
-	spcac = 'http://www.spc.noaa.gov/products/spcacrss.xml'  # SPC Convective Outlooks
+	spcmd  = 'http://www.spc.noaa.gov/products/spcmdrss.xml'  # SPC Mesoscale Discussions
+	spcac  = 'http://www.spc.noaa.gov/products/spcacrss.xml'  # SPC Convective Outlooks

@@ -22,3 +22,19 @@ def datetime_stamp():
         Format: YYYYMMDD_HHMM
     """
     return datetime.utcnow().strftime('%Y%m%d_%H%M')
+
+
+def is_nhc_feed(feed_url):
+    """
+    Determine whether an RSS feed is from the National Hurricane Center (NHC).
+
+    Parameters
+    ----------
+    feed_url : str
+        RSS feed URL.
+
+    Returns
+    -------
+    bool
+    """
+    return ('nhc' in feed_url)

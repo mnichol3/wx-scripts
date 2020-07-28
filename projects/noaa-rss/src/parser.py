@@ -1,6 +1,9 @@
-# Python 3.6
-# Simple RSS feed parser utilizing the feedparser library.
+"""
+Python 3.6
+Simple NOAA RSS feed parser utilizing the feedparser library.
 
+17 Jul 2020
+"""
 import feedparser as fp
 import re
 import os
@@ -8,7 +11,7 @@ import sys
 
 import logger
 from config import Feeds, Paths
-from utils import datetime_stamp
+from utils import datetime_stamp, is_nhc_feed
 
 
 class RssAggregator():
@@ -16,20 +19,22 @@ class RssAggregator():
 	RSS Aggregator class.
 	"""
 	feed_url  = ''
-	feed_type = ''
+	feed_name = ''
 
 	def __init__(self, rss_feed):
-		self.feed_type = rss_feed
+		self.feed_name = rss_feed
 		self.feed_url  = getattr(Feeds, rss_feed)
 		self.parse()
 
-	def parse(self):
+	def parse(self, write=True):
 		"""
 		Parse the RSS feed using the feedparser.parse() function.
 
 		Parameters
 		----------
-		None.
+		write : bool, optional
+			If True, the parsed RSS feed will be written to a text file.
+			Default is True.
 
 		Returns
 		-------
@@ -45,7 +50,8 @@ class RssAggregator():
 			rss_text = feed_entry.get("description", "")
 			rss_text = self._scrub_tags(rss_text)
 			print(rss_text)
-			self.to_file(rss_text)
+			if write:
+				self.to_file(rss_text)
 
 	def to_file(self, parsed_text, overwrite=False):
 		"""
@@ -65,12 +71,12 @@ class RssAggregator():
 		-------
 		str : Name of the file the parsed RSS feed was written to.
 		"""
-		if self.feed_type == 'twdat':
+		if is_nhc_feed(self.feed_name):
 			prod_time = self._get_nhc_time(parsed_text)
 			fname = self._get_filename(utc_time=prod_time)
 		else:
 			fname = self._get_filename()
-		f_path = os.path.join(Paths.raw_rss, self.feed_type, fname)
+		f_path = os.path.join(Paths.raw_rss, self.feed_name, fname)
 		if os.path.exists(f_path):
 			# If the RSS file already exists, determine how we're going to proceed
 			logger.log_msg('main_log', 'RSS file already exists {}'.format(f_path), 'debug')
@@ -95,13 +101,13 @@ class RssAggregator():
 
 		Returns
 		-------
-		str : Filename. Format: <feed_type>-YYYYMMDD_HHMM.txt
+		str : Filename. Format: <feed_name>-YYYYMMDD_HHMM.txt
 		"""
 		t_stamp = datetime_stamp()
 		if utc_time:
 			date = t_stamp.split('_')[0]
 			t_stamp = '{}_{}'.format(date, utc_time)
-		fname = '{}-{}.txt'.format(self.feed_type, t_stamp)
+		fname = '{}-{}.txt'.format(self.feed_name, t_stamp)
 		return fname
 
 	def _get_nhc_time(self, rss_text):
