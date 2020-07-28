@@ -6,6 +6,7 @@ Main file for the NOAA RSS scripts.
 27 Jul 2020
 """
 import argparse
+import os
 
 import logger
 import parser
@@ -51,17 +52,42 @@ def init_args():
     return parser
 
 
+def init_rss_dir(rss_feed):
+    """
+    Check if the output directory for a given RSS Feed type exists. If not,
+    create it.
+
+    Parameters
+    ----------
+    rss_feed : str
+        RSS Feed being parsed.
+
+    Returns
+    -------
+    Bool
+    """
+    logger.log_msg('main_log', 'Checking local RSS directories', 'debug')
+    rss_dir = os.path.join(Paths.base_path, Paths.raw_rss, rss_feed)
+    if os.path.isdir(rss_dir):
+        logger.log_msg('main_log', 'RSS directory found: {}'.format(rss_dir), 'debug')
+    else:
+        os.makedirs(rss_dir)
+        logger.log_msg('main_log', 'RSS directory created: {}'.format(rss_dir), 'debug')
+    return True
+
+
 def main():
     # Initialize cmd arg parser and parse args
     args = init_args()
     args = args.parse_args()
     # Initialize main log
     log = logger.init_logger(Paths.logs, 'main_log', args.log_level)
-    logger.log_msg('main_log', 'Log created.', 'debug')
     # Iterate over the list of rss feed args and parse each one
     for feed in args.feeds:
-        feed_url = getattr(Feeds, feed)
-        parser.RssAggregator(feed_url)
+        # Initialize local rss directories if needed
+        init_rss_dir(feed)
+        # Parse the feed
+        parser.RssAggregator(feed)
 
 
 if __name__ == '__main__':

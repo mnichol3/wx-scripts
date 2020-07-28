@@ -7,16 +7,23 @@ File contains:
 
 24 Jul 2020
 """
-from os.path import join
+import os
+
+import logger
+
 
 class Paths():
     """
     Class to hold local paths.
+
+    ***IMPORTANT***
+    User must change the 'base_path' variable.
     """
     base_path = '/home/mnichol3/code/wx-scripts/projects/noaa-rss'
-    logs   = join(base_path, 'logs')
-    raw_db = join(base_path, 'raw_rss')
-    output = join(base_path, 'out')
+    logs    = os.path.join(base_path, 'logs')
+    raw_rss = os.path.join(base_path, 'raw_rss')
+    rss_out = os.path.join(base_path, 'rss_out')
+
 
 class Feeds():
 	"""

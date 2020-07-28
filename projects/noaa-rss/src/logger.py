@@ -10,6 +10,9 @@ import logging
 import os
 from datetime import datetime
 
+from utils import datetime_stamp
+
+
 def init_logger(log_dir, log_name, log_level='debug'):
     """
     Initialize a new logger.
@@ -42,7 +45,7 @@ def init_logger(log_dir, log_name, log_level='debug'):
 
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
-    timestamp = parse_log_datetime()
+    timestamp = datetime_stamp()
     log_fname = '{}-{}.log'.format(timestamp, log_name)
     log_path = os.path.join(log_dir, log_fname)
     log_format = logging.Formatter("%(asctime)s %(levelname)6s: %(message)s", "%Y-%m-%d %H:%M:%S")
@@ -51,7 +54,7 @@ def init_logger(log_dir, log_name, log_level='debug'):
     logger = logging.getLogger(log_name)
     logger.setLevel(log_levels[log_level])
     logger.addHandler(handler)
-    logger.info("Log created!\n")
+    logger.info("Log created\n")
     return logger
 
 
@@ -111,19 +114,3 @@ def remove_old_logs(log_dir):
             c_time = os.path.getctime(curr_file)
             if (now - c_time) // (24 * 3600) >= 30:
                 os.remove(curr_file)
-
-
-def parse_log_datetime():
-    """
-    Parse the datetime (UTC) string to be included in the log filename.
-
-    Parameters
-    ----------
-    None.
-
-    Returns
-    -------
-    str : datatime string.
-        Format: YYYYMMDD_HHMM
-    """
-    return datetime.utcnow().strftime('%Y%m%d_%H%M')

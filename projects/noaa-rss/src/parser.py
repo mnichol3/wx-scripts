@@ -3,19 +3,24 @@
 
 import feedparser as fp
 import re
+import os
+import sys
 
 import logger
-from config import Feeds
+from config import Feeds, Paths
+from utils import datetime_stamp
 
 
 class RssAggregator():
 	"""
 	RSS Aggregator class.
 	"""
-	feed_url = ''
+	feed_url  = ''
+	feed_type = ''
 
-	def __init__(self, rss_url):
-		self.feed_url = rss_url
+	def __init__(self, rss_feed):
+		self.feed_type = rss_feed
+		self.feed_url  = getattr(Feeds, rss_feed)
 		self.parse()
 
 	def parse(self):
@@ -38,13 +43,94 @@ class RssAggregator():
 		logger.log_msg('main_log','Published {}'.format(pub_datetime), 'debug')
 		for feed_entry in parsed_feed.entries:
 			rss_text = feed_entry.get("description", "")
-			rss_text = self.scrub_tags(rss_text)
+			rss_text = self._scrub_tags(rss_text)
 			print(rss_text)
-			print('*' * 60)
-			print('*' * 60)
-			print('*' * 60)
+			self.to_file(rss_text)
 
-	def scrub_tags(self, rss_text):
+	def to_file(self, parsed_text, overwrite=False):
+		"""
+		Write a parsed RSS feed to a txt file. If a file with the same filenam
+		already exists, the file will only be overwritten
+		Filename format: <rss_feed_name>-YYYYMMDD_HHMM.txt.
+
+		Parameters
+		----------
+		parsed_text : str
+			Parsed RSS text returned by parse().
+		overwrite : bool, optional.
+			Whether or not to overwrite a file with the same name that already
+			exists. Default is to not overwrite the existing file.
+
+		Returns
+		-------
+		str : Name of the file the parsed RSS feed was written to.
+		"""
+		if self.feed_type == 'twdat':
+			prod_time = self._get_nhc_time(parsed_text)
+			fname = self._get_filename(utc_time=prod_time)
+		else:
+			fname = self._get_filename()
+		f_path = os.path.join(Paths.raw_rss, self.feed_type, fname)
+		if os.path.exists(f_path):
+			# If the RSS file already exists, determine how we're going to proceed
+			logger.log_msg('main_log', 'RSS file already exists {}'.format(f_path), 'debug')
+			if not overwrite:
+				logger.log_msg('main_log', 'RSS overwrite = False; returning'.format(f_path), 'debug')
+				return f_path
+		logger.log_msg('main_log', 'Writing parsed text to {}'.format(f_path), 'debug')
+		with open (f_path, 'w') as rss_out:
+			rss_out.write(parsed_text)
+		return f_path
+
+	def _get_filename(self, utc_time=None):
+		"""
+		Construct the filename of parsed RSS feed text as its saved locally.
+
+		Parameters
+		----------
+		utc_time : str, optional
+			Forecast/valid time of the product discussed in the RSS feed. If given,
+			this time will be used in the filename string instead of the current
+			UTC time. Default is to use current UTC time.
+
+		Returns
+		-------
+		str : Filename. Format: <feed_type>-YYYYMMDD_HHMM.txt
+		"""
+		t_stamp = datetime_stamp()
+		if utc_time:
+			date = t_stamp.split('_')[0]
+			t_stamp = '{}_{}'.format(date, utc_time)
+		fname = '{}-{}.txt'.format(self.feed_type, t_stamp)
+		return fname
+
+	def _get_nhc_time(self, rss_text):
+		"""
+		Get the forecast time of an NHC product RSS feed.
+
+		Parameters
+		----------
+		rss_text : str
+			Parsed RSS feed text.
+
+		Return
+		------
+		str : Product's forecast time (HHMM, UTC)
+			If regex parsing fails, None is returned.
+		"""
+		time_re = re.compile(r'KNHC \d{2}(\d{4})')
+		ret_val = None
+		try:
+			prod_time = time_re.search(rss_text).group(1)
+			if len(prod_time) == 4 and int(prod_time):   # Quick validation
+				ret_val = prod_time
+			else:
+				logger.log_msg('main_log', 'Invalid NHC product time {}; using system time'.format(prod_time), 'warning')
+		except:
+			logger.log_msg('main_log', sys.exc_info()[0], 'error')
+		return ret_val
+
+	def _scrub_tags(self, rss_text):
 		"""
 		Remove XML/HTML tags from parsed RSS text.
 
