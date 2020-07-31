@@ -12,7 +12,7 @@ import sys
 import logger
 import parsed_rss
 from config import Feeds, Paths
-from utils import datetime_stamp, is_nhc_feed
+from utils import datetime_stamp
 
 
 class RssAggregator():

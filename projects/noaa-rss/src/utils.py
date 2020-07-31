@@ -6,7 +6,9 @@ Utility/common functions.
 28 Jul 2020
 """
 import calendar
+import os
 from datetime import datetime
+from pathlib import Path
 
 def datetime_stamp():
     """
@@ -66,3 +68,23 @@ def last_day_of_month(dt_obj):
     """
     num_days = calendar.monthrange(dt_obj.year, dt_obj.month)[1]
     return num_days == dt_obj.day
+
+
+def get_proj_root():
+    """
+    Get the project root directory.
+
+    Parameters
+    ----------
+    None.
+
+    Returns
+    -------
+    str : Absolute path of project root directory.
+
+    Raises
+    ------
+    None.
+    """
+    root = str(Path(os.path.abspath(__file__)).parents[0])
+    return root

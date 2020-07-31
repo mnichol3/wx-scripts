@@ -9,10 +9,10 @@ import argparse
 import os
 
 import logger
-import parser
 import rss_feed
 import parsed_rss
-from config import Feeds, Paths
+from config import Feeds
+from paths import Paths
 
 def init_args():
     """
@@ -69,7 +69,7 @@ def init_rss_dir(rss_feed):
 
     Returns
     -------
-    Bool
+    None.
 
     Raises
     ------
@@ -82,7 +82,6 @@ def init_rss_dir(rss_feed):
     else:
         os.makedirs(rss_dir)
         logger.log_msg('main_log', 'RSS directory created: {}'.format(rss_dir), 'debug')
-    return True
 
 
 def main():
@@ -91,6 +90,8 @@ def main():
     args = args.parse_args()
     # Initialize main log
     log = logger.init_logger(Paths.logs, 'main_log', args.log_level)
+    # Log some stuff
+    logger.log_msg('main_log', 'Project root: {}'.format(Paths.root_path), 'debug')
     # Iterate over the list of rss feed args and parse each one
     for feed in args.feeds:
         # Initialize local rss directories if needed

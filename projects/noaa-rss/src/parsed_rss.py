@@ -15,7 +15,7 @@ from datetime import timedelta
 import logger
 import parsed_rss
 import utils
-from config import Feeds, Paths
+from paths import Paths
 
 class ParsedRSS:
 
@@ -78,8 +78,9 @@ class ParsedRSS:
         parsed_feed = fp.parse(self.feed_url)
         msg = 'Parsing {} - {}'.format(self.feed_url, parsed_feed.feed.get('title', ''))
         logger.log_msg('main_log', msg, 'debug')
+        print(msg)
         # Get the current datetime stamp
-        self.retr_time = get_datetime()
+        self.retr_time = utils.get_datetime()
         for feed_entry in parsed_feed.entries:
             rss_text = feed_entry.get("description", "")
             # Remove any HTML/XML tags
@@ -110,7 +111,7 @@ class ParsedRSS:
             prod_re = re.compile(r'VALID (\d{2})/(\d{4}Z)')
         elif self.short_name == 'spcmd' or self.short_name == 'spcac':
             prod_re = re.compile(r'Valid (\d{2})(\d{4}Z)')
-        prod_dt = prod_re.search(self.parsed_text)
+        prod_dt = prod_re.search(self.rss_text)
         try:
             prod_day  = prod_dt.group(1)
             prod_time = prod_dt.group(2)
@@ -198,5 +199,22 @@ class ParsedRSS:
         else:
             return time_var.strftime('%Y%m%d-%H%M')
 
+    def _scrub_tags(self, rss_text):
+        """
+        Remove XML/HTML tags from parsed RSS text.
+
+        Parameters
+        ----------
+        rss_text : str
+        	Parsed RSS text.
+
+        Returns
+        -------
+        str : RSS text with tags removed
+        """
+        tag_re = re.compile(r'<[^>]+>')
+        scrubbed_txt = tag_re.sub('', rss_text)
+        return scrubbed_txt
+
     def __repr__(self):
-        return '<ParsedRSS object - {} {}'>.format(self.short_name, self.prod_time)
+        return '<ParsedRSS object - {} {}>'.format(self.short_name, self.prod_time)
