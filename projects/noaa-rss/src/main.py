@@ -67,7 +67,7 @@ def init_rss_dir(rss_feed):
     Bool
     """
     logger.log_msg('main_log', 'Checking local RSS directories', 'debug')
-    rss_dir = os.path.join(Paths.base_path, Paths.raw_rss, rss_feed)
+    rss_dir = os.path.join(Paths.rss, rss_feed)
     if os.path.isdir(rss_dir):
         logger.log_msg('main_log', 'RSS directory found: {}'.format(rss_dir), 'debug')
     else:

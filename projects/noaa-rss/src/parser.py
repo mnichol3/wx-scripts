@@ -10,6 +10,7 @@ import os
 import sys
 
 import logger
+import parsed_rss
 from config import Feeds, Paths
 from utils import datetime_stamp, is_nhc_feed
 
@@ -23,7 +24,7 @@ class RssAggregator():
 
 	def __init__(self, rss_feed):
 		self.feed_name = rss_feed
-		self.feed_url  = getattr(Feeds, rss_feed)
+		self.feed_url  = Feeds[rss_feed].url
 		self.parse()
 
 	def parse(self, write=True):
@@ -45,13 +46,21 @@ class RssAggregator():
 		logger.log_msg('main_log', msg, 'debug')
 		print(parsed_feed.feed.get('description', ''))
 		pub_datetime = parsed_feed.feed.get('RSS text published', '')
+		dt_stamp = datetime_stamp()
 		logger.log_msg('main_log','Published {}'.format(pub_datetime), 'debug')
 		for feed_entry in parsed_feed.entries:
 			rss_text = feed_entry.get("description", "")
 			rss_text = self._scrub_tags(rss_text)
 			print(rss_text)
-			if write:
-				self.to_file(rss_text)
+			print('============================================================')
+			print('============================================================')
+			print('============================================================')
+			# if is_nhc_feed(self.feed_name):
+			# 	prod_time = self._get_nhc_time(parsed_text)
+			# else:
+			# 	prod_time = dt_stamp
+			# rss_obj = parsed_rss.ParsedRSS(dt_stamp, self.feed_url, self.feed_name,
+			#                                prod_time, rss_text, self.get_pub_office())
 
 	def to_file(self, parsed_text, overwrite=False):
 		"""
@@ -73,9 +82,9 @@ class RssAggregator():
 		"""
 		if is_nhc_feed(self.feed_name):
 			prod_time = self._get_nhc_time(parsed_text)
-			fname = self._get_filename(utc_time=prod_time)
+			fname = self.get_filename(utc_time=prod_time)
 		else:
-			fname = self._get_filename()
+			fname = self.get_filename()
 		f_path = os.path.join(Paths.raw_rss, self.feed_name, fname)
 		if os.path.exists(f_path):
 			# If the RSS file already exists, determine how we're going to proceed
@@ -88,7 +97,7 @@ class RssAggregator():
 			rss_out.write(parsed_text)
 		return f_path
 
-	def _get_filename(self, utc_time=None):
+	def get_filename(self, utc_time=None):
 		"""
 		Construct the filename of parsed RSS feed text as its saved locally.
 
@@ -109,6 +118,27 @@ class RssAggregator():
 			t_stamp = '{}_{}'.format(date, utc_time)
 		fname = '{}-{}.txt'.format(self.feed_name, t_stamp)
 		return fname
+
+	def get_pub_office(self):
+		"""
+		Get the name of the office that published the RSS feed.
+
+		Parameters
+		----------
+		None.
+
+		Returns
+		-------
+		str : Office name.
+		"""
+		ofc_re = re.compile(r'www\.(\w+?)\.')
+		office_abbrev = ofc_re.search(self.feed_url)
+		if office:
+			office = office_abbrev.group(1)
+		else:
+			logger.log_msg('main_log', 'Unable to parse publishing office for {}'.format(self.feed_url), 'error')
+			office = ''
+		return office
 
 	def _get_nhc_time(self, rss_text):
 		"""
