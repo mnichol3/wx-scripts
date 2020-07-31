@@ -1,0 +1,9 @@
+# Directories
+__pycache__/
+logs/
+parsed_rss/
+
+# File extensions
+*.log
+*.json
+*.pyc
