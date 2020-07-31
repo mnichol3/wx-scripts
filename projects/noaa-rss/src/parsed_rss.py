@@ -17,7 +17,6 @@ import parsed_rss
 import utils
 from config import Feeds, Paths
 
-
 class ParsedRSS:
 
     def __init__(self, feed_obj):
@@ -29,7 +28,7 @@ class ParsedRSS:
 
         Attributes
         ----------
-        retr_time : datetime obj
+        retr_time : datetime object
             Time the RSS feed was retrieved & parsed.
         feed_url : str
             RSS feed URL.
@@ -49,7 +48,7 @@ class ParsedRSS:
             Name of the json file the object will be saved to.
         """
         self.feed_url   = feed_obj.url
-        self.short_name) = feed_obj.short_name
+        self.short_name = feed_obj.short_name
         self.long_name  = feed_obj.long_name
         self.pub_office = feed_obj.office
         self.prod_time  = None
@@ -69,6 +68,11 @@ class ParsedRSS:
 
         Returns
         -------
+        None.
+
+        Raises
+        ------
+        None.
         """
         # Parse the RSS feed text
         parsed_feed = fp.parse(self.feed_url)
@@ -95,6 +99,10 @@ class ParsedRSS:
         Returns
         -------
         datetime object
+
+        Raises
+        ------
+        None.
         """
         if self.short_name == 'twdat' or self.short_name == 'twdep':
             prod_re = re.compile(r'KNHC (\d{2})(\d{4})')
@@ -131,6 +139,10 @@ class ParsedRSS:
         Returns
         -------
         None.
+
+        Raises
+        ------
+        None.
         """
         if self.file_path:
             logger.log_msg('main_log', 'Writing {}'.format(self.file_path), 'debug')
@@ -150,7 +162,41 @@ class ParsedRSS:
         Returns
         -------
         None.
+
+        Raises
+        ------
+        None.
         """
-        datetime_stamp = self.prod_time.strftime('%Y%m%d_%H%M')
+        datetime_stamp = self.prod_time.strftime('%Y%m%d-%H%M')
         self.file_name = '{}-{}.json'.format(self.short_name, datetime_stamp)
         self.file_path = os.path.join(Paths.rss, self.short_name, self.file_name)
+
+    def datetime_to_str(self, var):
+        """
+        Return a ParsedRSS time variable (either 'repr_time' or 'prod_time')
+        as a string.
+
+        Parameters
+        ----------
+        var : str
+            ParsedRSS time variable to return, either 'repr_time' or 'prod_time'.
+
+        Returns
+        -------
+        str. Format: YYYYMMDD-HHMM.
+
+        Raises
+        ------
+        AttributeError
+            If invalid 'var' parameter retrieval from instance is attempted.
+        """
+        try:
+            time_var = getattr(self, var)
+        except AttributeError as e:
+            logger.log_msg('main_log', str(e), 'error')
+            raise
+        else:
+            return time_var.strftime('%Y%m%d-%H%M')
+
+    def __repr__(self):
+        return '<ParsedRSS object - {} {}'>.format(self.short_name, self.prod_time)

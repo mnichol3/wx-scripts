@@ -12,7 +12,6 @@ import os
 import logger
 from rss_feed import RSSFeed
 
-
 """
 Dictionary containing RSSFeed objects for NOAA RSS Feeds currently implemented.
 """

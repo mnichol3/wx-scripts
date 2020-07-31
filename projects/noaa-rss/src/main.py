@@ -10,8 +10,9 @@ import os
 
 import logger
 import parser
+import rss_feed
+import parsed_rss
 from config import Feeds, Paths
-
 
 def init_args():
     """
@@ -24,6 +25,10 @@ def init_args():
     Returns
     -------
     argparse.ArgumentParser object
+
+    Raises
+    ------
+    None.
 
     Args
     ----
@@ -65,6 +70,10 @@ def init_rss_dir(rss_feed):
     Returns
     -------
     Bool
+
+    Raises
+    ------
+    None.
     """
     logger.log_msg('main_log', 'Checking local RSS directories', 'debug')
     rss_dir = os.path.join(Paths.rss, rss_feed)
@@ -86,8 +95,10 @@ def main():
     for feed in args.feeds:
         # Initialize local rss directories if needed
         init_rss_dir(feed)
-        # Parse the feed
-        parser.RssAggregator(feed)
+        # Retrieve the RSSFeed object from the config dictionary
+        feed_obj = Feeds[feed]
+        # Parse the feed, returning a ParsedRSS object
+        parsed_obj = feed_obj.parse()
 
 
 if __name__ == '__main__':

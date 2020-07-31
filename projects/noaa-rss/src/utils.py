@@ -8,7 +8,6 @@ Utility/common functions.
 import calendar
 from datetime import datetime
 
-
 def datetime_stamp():
     """
     Parse the datetime (UTC) string. Format: YYYYMMDD_HHMM.
@@ -21,6 +20,10 @@ def datetime_stamp():
     -------
     str : datatime string.
         Format: YYYYMMDD_HHMM
+
+    Raises
+    ------
+    None.
     """
     return datetime.utcnow().strftime('%Y%m%d_%H%M')
 
@@ -36,6 +39,10 @@ def get_datetime():
     Returns
     -------
     Datetime object
+
+    Raises
+    ------
+    None.
     """
     return datetime.utcnow()
 
@@ -52,22 +59,10 @@ def last_day_of_month(dt_obj):
     Returns
     -------
     bool
+
+    Raises
+    ------
+    None.
     """
     num_days = calendar.monthrange(dt_obj.year, dt_obj.month)[1]
     return num_days == dt_obj.day
-
-
-def is_nhc_feed(feed_url):
-    """
-    Determine whether an RSS feed is from the National Hurricane Center (NHC).
-
-    Parameters
-    ----------
-    feed_url : str
-        RSS feed URL.
-
-    Returns
-    -------
-    bool
-    """
-    return ('nhc' in feed_url)

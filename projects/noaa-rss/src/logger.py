@@ -35,6 +35,10 @@ def init_logger(log_dir, log_name, log_level='debug'):
     Returns
     -------
     logger : logging.Logger instance
+
+    Raises
+    ------
+    None.
     """
     log_levels = {'debug': logging.DEBUG,
                   'info' : logging.INFO,
@@ -74,6 +78,11 @@ def log_msg(log_name, msg, log_lvl):
     Returns
     -------
     None.
+
+    Raises
+    ------
+    ValueError
+        Invalid log level parameter is given.
     """
     log = logging.getLogger(log_name)
     if log_lvl == 'debug':
@@ -88,6 +97,7 @@ def log_msg(log_name, msg, log_lvl):
         log.critical(msg)
     else:
         log.error('Invalid log level param encountered in logger.log_msg: {}'.format(log_lvl))
+        raise ValueError('Invalid log level parameter: {}'.format(log_lvl))
 
 
 def remove_old_logs(log_dir):
@@ -102,6 +112,10 @@ def remove_old_logs(log_dir):
 
     Returns
     -------
+    None.
+
+    Raises
+    ------
     None.
     """
     now = datetime.now()

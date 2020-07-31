@@ -5,6 +5,7 @@ Class to represent a NOAA RSS Feed.
 
 30 Jul 2020
 """
+import parsed_rss
 
 class RSSFeed():
 
@@ -32,6 +33,24 @@ class RSSFeed():
         self.url        = url
         self.office     = office
 
+    def parse(self):
+        """
+        Parse the RSS feed and return a ParsedRSS object.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        ParsedRSS object.
+
+        Raises
+        ------
+        None.
+        """
+        return parsed_rss.ParsedRSS(self)
+
     def pretty_print(self):
         """
         Pretty print an RSSFeed instance.
@@ -42,6 +61,10 @@ class RSSFeed():
 
         Returns
         -------
+        None.
+
+        Raises
+        ------
         None.
         """
         print('<--- RSS Feed Object --->')
