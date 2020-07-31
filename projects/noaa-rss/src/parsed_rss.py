@@ -10,6 +10,7 @@ import feedparser as fp
 import re
 import os
 import sys
+import copy
 from datetime import timedelta
 
 import logger
@@ -87,7 +88,9 @@ class ParsedRSS:
             self.rss_text = self._scrub_tags(rss_text)
             # Get the product forecast/valid time from the parsed text
             self.prod_time = self.get_prod_time()
+        logger.log_msg('main_log', 'Parsing successful!', 'debug')
         self.gen_filepath()
+        self.to_file()
 
     def get_prod_time(self):
         """
@@ -147,8 +150,15 @@ class ParsedRSS:
         """
         if self.file_path:
             logger.log_msg('main_log', 'Writing {}'.format(self.file_path), 'debug')
-            with open(self.file_path, 'w') as outfile:
-                json.dump(self.__dict__, outfile)
+            print('    Writing to file - {}'.format(self.file_path))
+            # Create a deep copy of the object and cast the datetime attributes
+            # to str so they can be serialized
+            obj_cp = copy.deepcopy(self)
+            obj_cp.retr_time = self.datetime_to_str('retr_time') + 'z'
+            obj_cp.prod_time = self.datetime_to_str('prod_time') + 'z'
+            with open(obj_cp.file_path, 'w') as outfile:
+                json.dump(obj_cp.__dict__, outfile)
+            logger.log_msg('main_log', 'Write successful!', 'debug')
         else:
             logger.log_msg('main_log', 'Cannot parse json filename {}'.format(self.file_path), 'warning')
 
